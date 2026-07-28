@@ -21,6 +21,13 @@ class Settings(BaseSettings):
   data_dir: Path = PROJECT_ROOT / "data"
   media_root: Path = PROJECT_ROOT / "data"
 
+  # Onde a revisão humana é persistida: decisions.json, audit.jsonl e
+  # baseline.json. Configurável porque é a única forma de um servidor de teste
+  # exercitar os endpoints de auditoria sem escrever no arquivo de verdade — que
+  # é versionado, e onde um teste de navegador já gravou operações que pareciam
+  # auditoria real.
+  review_dir: Path = PROJECT_ROOT / "data" / "review"
+
   anthropic_api_key: str | None = None
   llm_model: str = "claude-opus-5"
 

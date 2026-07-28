@@ -40,15 +40,15 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.config import PROJECT_ROOT
+from src.config import settings
 
-DECISIONS_PATH = PROJECT_ROOT / "data" / "review" / "decisions.json"
+DECISIONS_PATH = settings.review_dir / "decisions.json"
 
 # Trilha append-only. O decisions.json guarda o estado final de cada questão —
 # é o que o load aplica. Este arquivo guarda a sequência de ações que levou até
 # lá, para que uma auditoria consiga responder "quem mudou o quê, quando" e não
 # só "como está agora".
-AUDIT_PATH = PROJECT_ROOT / "data" / "review" / "audit.jsonl"
+AUDIT_PATH = settings.review_dir / "audit.jsonl"
 
 FORMAT_VERSION = 2
 

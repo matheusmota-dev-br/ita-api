@@ -19,7 +19,7 @@ from pathlib import Path
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
-from src.config import PROJECT_ROOT, settings
+from src.config import settings
 from src.etl.provenance import capture, fingerprint
 from src.models import (
   Alternative,
@@ -31,7 +31,7 @@ from src.models import (
 )
 from src.models.enums import ReviewStatus
 
-BASELINE_PATH = PROJECT_ROOT / "data" / "review" / "baseline.json"
+BASELINE_PATH = settings.review_dir / "baseline.json"
 
 
 def measure() -> dict:

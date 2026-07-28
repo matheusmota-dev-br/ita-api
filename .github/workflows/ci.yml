@@ -53,7 +53,9 @@ jobs:
       # Os testes constroem seus próprios bancos temporários e PDFs sintéticos:
       # não dependem do corpus baixado, que é gitignored.
       - name: Run tests
-        run: pipenv run pytest -q
+        # A suite de navegador precisa de Chrome; ela se auto-skipa quando nao
+        # ha, mas ignorar o diretorio deixa isso explicito no log do CI.
+        run: pipenv run pytest -q --ignore=tests/e2e --cov=src --cov-report=term
 
   format:
     name: Format

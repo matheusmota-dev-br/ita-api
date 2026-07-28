@@ -38,9 +38,19 @@ tasks:
       - '{{.ALEMBIC}} revision --autogenerate -m "{{.MSG}}"'
 
   test:
-    desc: Run the test suite
+    desc: Run the test suite (backend + browser)
     cmds:
       - pipenv run pytest -q
+
+  test-fast:
+    desc: Backend tests only, skipping the browser suite
+    cmds:
+      - pipenv run pytest -q --ignore=tests/e2e
+
+  test-cov:
+    desc: Run tests with a coverage report
+    cmds:
+      - pipenv run pytest -q --cov=src --cov-report=term-missing
 
   check:
     desc: Run ruff check (lint)
