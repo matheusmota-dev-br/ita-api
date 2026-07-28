@@ -12,7 +12,7 @@ identicos, e o `git diff` do banner so muda quando o corpus muda.
 
 Cada questao do corpus e um quadradinho. As torres sao os anos; a barra de
 baixo e a divisao por materia; e o emblema a esquerda e um mosaico da mesma
-grade, amostrado do PNG com stdlib — nao a imagem embutida.
+grade, amostrado do PNG com stdlib e pintado por matiz — nao a imagem embutida.
 
 O emblema e marca do ITA, aqui como referencia a origem das provas. Projeto
 independente, sem vinculo nem endosso do Instituto Tecnologico de Aeronautica.
@@ -44,18 +44,23 @@ BASELINE_Y = 306.0  # onde as torres se apoiam
 BAR_Y, BAR_H = 350.0, 14.0
 
 # O emblema, em mosaico da mesma grade das questoes, num passo mais fino.
-# A 44 celulas ele virava borrao no tamanho renderizado; 52 e onde as asas, a
-# tocha e os dentes da engrenagem voltam a se distinguir.
-EMBLEMA_COLS = 52  # largura em celulas; a altura sai da razao do PNG
-EMBLEMA_CELL = 4.0
-EMBLEMA_DOT = 3.0
-EMBLEMA_TOPO = 48.0
+# 64 celulas e onde a tocha se separa do escudo e os vaos entre as letras
+# aparecem; abaixo disso o miolo vira um bloco azul so.
+EMBLEMA_COLS = 64  # largura em celulas; a altura sai da razao do PNG
+EMBLEMA_CELL = 3.0
+EMBLEMA_DOT = 2.2
+EMBLEMA_TOPO = 50.0
 # Ele fica a esquerda, e o bloco de texto comeca depois dele.
 TEXTO_X = PAD + EMBLEMA_COLS * EMBLEMA_CELL + 28
 # Opaco e nao-branco conta como tinta. O limiar deixa o branco de fora, o que
 # preserva os vaos entre as penas; 0.45 de cobertura da celula acende o quadrado.
 EMBLEMA_LUM_MAX = 228
 EMBLEMA_COBERTURA = 0.45
+
+# As classes de cor do emblema. A primeira versao classificava por luminancia e
+# perdia o desenho: azul (~99) e vermelho (~72) caem os dois no "escuro", entao
+# escudo e tocha viravam a mesma mancha. Matiz separa.
+OURO, AZUL, VERMELHO, CONTORNO = 1, 2, 3, 4
 
 # Paleta: azul sequencial para as torres (uma serie so, sem legenda), e os cinco
 # primeiros slots categoricos para a barra de materias — nessa ordem os pares
@@ -81,6 +86,15 @@ THEMES = {
       "#cde2fb",
     ],
     "series": ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181"],
+    # Cores do proprio emblema, amostradas do PNG. O azul sobe um passo em dark:
+    # o #0066b3 original fica em 2,98:1 contra este fundo e o escudo — a parte
+    # que carrega as letras — apagava.
+    "emblema": {
+      OURO: "#ffcb05",
+      AZUL: "#1477c9",
+      VERMELHO: "#ec1c24",
+      CONTORNO: "#7d7c73",
+    },
   },
   "light": {
     "surface": "#fcfcfb",
@@ -100,6 +114,15 @@ THEMES = {
       "#86b6ef",
     ],
     "series": ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"],
+    # Em light o ouro do emblema escurece: #ffcb05 sobre #fcfcfb da 1,47:1 e as
+    # asas somem. O logo oficial resolve isso com contorno preto, que nesta
+    # resolucao nao existe, entao o pigmento e que tem de descer.
+    "emblema": {
+      OURO: "#c08a00",
+      AZUL: "#0066b3",
+      VERMELHO: "#d0121a",
+      CONTORNO: "#3a3a36",
+    },
   },
 }
 
@@ -264,27 +287,42 @@ def _le_png(caminho: Path) -> tuple[int, int, bytes, int]:
   return larg, alt, bytes(saida), canais
 
 
-def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[int]]:
-  """Reduz o emblema a uma grade de 0/1, recortada na caixa de tinta.
+def _classe_de_cor(r: int, g: int, b: int) -> int:
+  """A qual parte do emblema este pixel pertence, por matiz.
 
-  Uma silhueta, e nao o emblema colorido: o dourado saturado e o vermelho da
-  tocha brigariam com a rampa azul, e a 50px de altura as penas viram borrao de
-  qualquer jeito. Em tom unico ele lê como marca e o azul segue exclusivo dos
-  dados. Tentei duas tonalidades por luminancia para recuperar as letras `ITA`,
-  mas elas so resolvem com o emblema ~3x maior; no tamanho do cabecalho o
-  segundo tom vira ruido nas asas.
+  A ordem dos testes importa: o vermelho da tocha e o azul do escudo tem
+  luminancia parecida (~72 e ~99), entao quem separa e a dominancia de canal, e
+  o vermelho vem antes porque o alaranjado da borda da chama tambem tem R alto.
+  """
+  if 0.2126 * r + 0.7152 * g + 0.0722 * b >= EMBLEMA_LUM_MAX:
+    return 0  # branco: fundo, e o que preserva os vaos entre as penas
+  if r > 110 and r > g * 1.7 and r > b * 1.7:
+    return VERMELHO
+  if b > r + 40 and b > 90:
+    return AZUL
+  if r > 140 and g > 90 and b < 130:
+    return OURO
+  return CONTORNO  # preto do traco e o antialias entre as areas
+
+
+def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[int]]:
+  """Reduz o emblema a uma grade de classes de cor, recortada na caixa de tinta.
+
+  Cada celula recebe a cor que domina os pixels dela — asas em ouro, escudo e
+  letras em azul, tocha em vermelho. O contorno preto so vence quando a celula
+  nao tem nenhuma das tres cores, senao o traco escuro do desenho comeria as
+  areas de cor inteiras nessa resolucao.
   """
   larg, alt, px, canais = _le_png(caminho)
-  tinta = bytearray(larg * alt)
+  classes = bytearray(larg * alt)
   for i in range(larg * alt):
     o = i * canais
     if canais == 4 and px[o + 3] < 128:
       continue
-    lum = 0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]
-    tinta[i] = 1 if lum < EMBLEMA_LUM_MAX else 0
+    classes[i] = _classe_de_cor(px[o], px[o + 1], px[o + 2])
 
-  colunas = [x for x in range(larg) if any(tinta[y * larg + x] for y in range(alt))]
-  linhas = [y for y in range(alt) if any(tinta[y * larg + x] for x in range(larg))]
+  colunas = [x for x in range(larg) if any(classes[y * larg + x] for y in range(alt))]
+  linhas = [y for y in range(alt) if any(classes[y * larg + x] for x in range(larg))]
   if not colunas or not linhas:
     raise ValueError(f"{caminho.name}: nenhum pixel de tinta")
   x0, x1 = colunas[0], colunas[-1] + 1
@@ -292,7 +330,7 @@ def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[i
   cx, cy = x1 - x0, y1 - y0
   rows = max(1, round(cols * cy / cx))
 
-  # Media de caixa por celula, e nao amostra pontual: com 11px de fonte por
+  # Voto de caixa por celula, e nao amostra pontual: com ~8px de fonte por
   # celula, um ponto no lugar errado apaga uma pena inteira.
   grade = []
   for r in range(rows):
@@ -302,27 +340,33 @@ def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[i
       sx1 = max(sx0 + 1, x0 + cx * (c + 1) // cols)
       sy0 = y0 + cy * r // rows
       sy1 = max(sy0 + 1, y0 + cy * (r + 1) // rows)
-      total = (sx1 - sx0) * (sy1 - sy0)
-      cheias = sum(
-        tinta[y * larg + x] for y in range(sy0, sy1) for x in range(sx0, sx1)
-      )
-      linha.append(1 if cheias / total >= EMBLEMA_COBERTURA else 0)
+      votos = [classes[y * larg + x] for y in range(sy0, sy1) for x in range(sx0, sx1)]
+      tinta = len(votos) - votos.count(0)
+      if tinta / len(votos) < EMBLEMA_COBERTURA:
+        linha.append(0)
+        continue
+      coloridos = [(votos.count(k), k) for k in (OURO, AZUL, VERMELHO)]
+      quanto, cor = max(coloridos)
+      linha.append(cor if quanto else CONTORNO)
     grade.append(linha)
   return grade
 
 
 def emblema(t: dict, grade: list[list[int]]) -> list[str]:
-  """Desenha o mosaico à esquerda, em lockup com o wordmark."""
-  d = [
-    f"M{PAD + c * EMBLEMA_CELL:.1f} {EMBLEMA_TOPO + r * EMBLEMA_CELL:.1f}"
-    f"h{EMBLEMA_DOT:g}v{EMBLEMA_DOT:g}h-{EMBLEMA_DOT:g}z"
-    for r, linha in enumerate(grade)
-    for c, ligado in enumerate(linha)
-    if ligado
+  """Desenha o mosaico à esquerda, em lockup com o wordmark: um path por cor."""
+  trilhas: dict[int, list[str]] = {}
+  for r, linha in enumerate(grade):
+    for c, cor in enumerate(linha):
+      if not cor:
+        continue
+      trilhas.setdefault(cor, []).append(
+        f"M{PAD + c * EMBLEMA_CELL:.1f} {EMBLEMA_TOPO + r * EMBLEMA_CELL:.1f}"
+        f"h{EMBLEMA_DOT:g}v{EMBLEMA_DOT:g}h-{EMBLEMA_DOT:g}z"
+      )
+  return [
+    f'<path fill="{t["emblema"][cor]}" d="{"".join(trilhas[cor])}"/>'
+    for cor in sorted(trilhas)
   ]
-  if not d:
-    return []
-  return [f'<path fill="{t["ink_soft"]}" d="{"".join(d)}"/>']
 
 
 def torres(por_ano: dict[str, int], t: dict) -> list[str]:
@@ -548,9 +592,11 @@ def main(argv: list[str] | None = None) -> int:
     if not grade:
       print("sem emblema para pré-visualizar.", file=sys.stderr)
       return 2
+    simbolos = {0: "  ", OURO: "░░", AZUL: "██", VERMELHO: "▓▓", CONTORNO: "::"}
     for linha in grade:
-      print("".join("██" if v else "  " for v in linha))
-    print(f"{EMBLEMA_COLS}x{len(grade)} células, {sum(map(sum, grade))} quadrados")
+      print("".join(simbolos[v] for v in linha))
+    acesos = sum(1 for linha in grade for v in linha if v)
+    print(f"{EMBLEMA_COLS}x{len(grade)} células, {acesos} quadrados")
     return 0
 
   if not args.baseline.exists():

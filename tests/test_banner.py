@@ -272,21 +272,71 @@ def test_emblema_sem_tinta_reclama(tmp_path):
     banner.emblema_grade(vazio)
 
 
+@pytest.mark.parametrize(
+  "rgb,esperado",
+  [
+    ((255, 203, 5), banner.OURO),  # asa
+    ((0, 102, 179), banner.AZUL),  # escudo e letras
+    ((236, 28, 36), banner.VERMELHO),  # tocha
+    ((0, 0, 0), banner.CONTORNO),  # traço
+    ((255, 255, 255), 0),  # branco é fundo, não tinta
+    ((240, 240, 240), 0),  # quase-branco também
+  ],
+)
+def test_classifica_as_cores_do_emblema(rgb, esperado):
+  assert banner._classe_de_cor(*rgb) == esperado
+
+
+def test_vermelho_vence_o_alaranjado_da_borda_da_chama():
+  """A ordem dos testes importa: laranja tem R alto e passaria por ouro."""
+  assert banner._classe_de_cor(230, 90, 40) == banner.VERMELHO
+
+
+def test_celula_recebe_a_cor_que_domina(tmp_path):
+  """Maioria por célula, e o contorno só ganha quando não há cor nenhuma."""
+  larg = alt = 4
+  px = bytearray()
+  for y in range(alt):
+    for x in range(larg):
+      # 3/4 azul, 1/4 vermelho: a célula toda deve sair azul.
+      px += bytes((236, 28, 36, 255) if (x, y) == (0, 0) else (0, 102, 179, 255))
+  png = escreve_png(tmp_path / "mistura.png", larg, alt, bytes(px), filtro=0)
+  assert banner.emblema_grade(png, cols=1) == [[banner.AZUL]]
+
+  # Só preto: aí sim o contorno.
+  preto = escreve_png(tmp_path / "preto.png", 2, 2, bytes((0, 0, 0, 255) * 4), filtro=0)
+  assert banner.emblema_grade(preto, cols=1) == [[banner.CONTORNO]]
+
+
 def test_emblema_real_e_deterministico():
   """O PNG está versionado, então a grade dele é fixa — é o que prende o SVG."""
   a = banner.emblema_grade()
   b = banner.emblema_grade()
   assert a == b
   assert len(a[0]) == banner.EMBLEMA_COLS
-  assert len(a) == 20  # 52 colunas na razão 496x188
-  assert sum(map(sum, a)) == 443
+  assert len(a) == 24  # 64 colunas na razão 496x188
+  assert sum(1 for linha in a for v in linha if v) == 645
+  # As três cores do emblema aparecem: se a classificação regredir para
+  # luminância, escudo e tocha voltam a virar a mesma mancha.
+  presentes = {v for linha in a for v in linha if v}
+  assert {banner.OURO, banner.AZUL, banner.VERMELHO} <= presentes
+
+
+@pytest.mark.parametrize("tema", sorted(banner.THEMES))
+def test_todo_tema_tem_cor_para_toda_classe(tema):
+  """Classe sem cor no tema viraria KeyError na hora de desenhar."""
+  paleta = banner.THEMES[tema]["emblema"]
+  assert set(paleta) == {banner.OURO, banner.AZUL, banner.VERMELHO, banner.CONTORNO}
+  assert all(re.fullmatch(r"#[0-9a-f]{6}", v) for v in paleta.values())
 
 
 def test_svg_desenha_o_emblema_so_quando_recebe_a_grade():
+  grade = banner.emblema_grade()
+  cores = len({v for linha in grade for v in linha if v})
   sem = banner.svg(BASELINE_FAKE, "dark")
-  com = banner.svg(BASELINE_FAKE, "dark", banner.emblema_grade())
-  assert com.count("<path") == sem.count("<path") + 1
-  assert quadrados(com) == quadrados(sem) + 443
+  com = banner.svg(BASELINE_FAKE, "dark", grade)
+  assert com.count("<path") == sem.count("<path") + cores
+  assert quadrados(com) == quadrados(sem) + 645
 
 
 def test_emblema_ausente_nao_impede_o_banner(baseline, tmp_path, capsys):
@@ -322,7 +372,7 @@ def test_preview_do_emblema_nao_escreve_svg(tmp_path, capsys):
   saida = tmp_path / "docs"
   assert banner.main(["--preview-emblema", "--out-dir", str(saida)]) == 0
   out = capsys.readouterr().out
-  assert "52x20 células" in out
+  assert "64x24 células" in out
   assert "█" in out
   assert not saida.exists()
 

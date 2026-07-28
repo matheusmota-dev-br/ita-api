@@ -306,11 +306,18 @@ realmente muda. O `--check` é o que impede o gráfico de mentir depois de um
 
 O emblema à esquerda é um **mosaico da mesma grade dos dados**, e não a imagem
 embutida: o PNG é decodificado com `zlib` puro — o passo do CI roda num job sem
-PyMuPDF nem Pillow — e reduzido a uma silhueta de 52×20 células, amostrando a
-cobertura de tinta de cada célula. Em tom único de propósito: o dourado saturado
-e o vermelho da tocha brigariam com a rampa azul, e assim o azul segue exclusivo
-dos dados. Duas tonalidades recuperariam as letras `ITA`, mas só com o emblema
-~3× maior; no tamanho do cabeçalho o segundo tom vira ruído nas asas.
+PyMuPDF nem Pillow — e reduzido a 64×24 células, cada uma pintada com a cor que
+domina os pixels dela. Asas em ouro, escudo e letras em azul, tocha em vermelho,
+nas cores amostradas do próprio arquivo.
+
+A classificação é por **matiz**, não por luminância: azul (~99) e vermelho (~72)
+têm luminância parecida, então um limiar de brilho funde escudo e tocha na mesma
+mancha — foi a primeira versão, e ela perdia o desenho. O contorno preto só
+vence quando a célula não tem nenhuma das três cores, senão o traço escuro come
+as áreas de cor nessa resolução. Os dois temas têm pigmento próprio: `#ffcb05`
+sobre branco dá 1,47:1 e as asas somem, então em light o ouro desce para
+`#c08a00`; em dark é o azul que sobe, porque `#0066b3` contra `#1a1a19` fica em
+2,98:1 e o escudo apagava.
 
 Os dois temas existem porque o `<picture>` do GitHub troca de arquivo conforme o
 tema do leitor; o escuro não é o claro invertido — cada um tem seus próprios
