@@ -33,8 +33,10 @@ def make_pdf(tmp_path):
   return _make
 
 
-# Réplica do que a migration de FTS5 cria: os testes usam create_all, que não
-# conhece tabelas virtuais.
+# Réplica do que a migration de FTS5 cria: os testes usam `create_all`, que não
+# conhece tabelas virtuais. Os três triggers estão aqui, e não só o de insert,
+# porque o load emite `optimize` e `delete` no índice — com um subconjunto, o
+# teste falharia por uma diferença do próprio teste.
 FTS_SQL = [
   """CREATE VIRTUAL TABLE questions_fts USING fts5(
        search_blob, content='questions', content_rowid='id',
@@ -42,7 +44,26 @@ FTS_SQL = [
   """CREATE TRIGGER questions_fts_ai AFTER INSERT ON questions BEGIN
        INSERT INTO questions_fts(rowid, search_blob) VALUES (new.id, new.search_blob);
      END""",
+  """CREATE TRIGGER questions_fts_ad AFTER DELETE ON questions BEGIN
+       INSERT INTO questions_fts(questions_fts, rowid, search_blob)
+       VALUES ('delete', old.id, old.search_blob);
+     END""",
+  """CREATE TRIGGER questions_fts_au AFTER UPDATE OF search_blob ON questions BEGIN
+       INSERT INTO questions_fts(questions_fts, rowid, search_blob)
+       VALUES ('delete', old.id, old.search_blob);
+       INSERT INTO questions_fts(rowid, search_blob)
+       VALUES (new.id, new.search_blob);
+     END""",
 ]
+
+
+def create_schema(engine) -> None:
+  """Schema completo, incluindo o que o `create_all` não sabe criar."""
+  Base.metadata.create_all(engine)
+  with engine.connect() as conn:
+    for statement in FTS_SQL:
+      conn.exec_driver_sql(statement)
+    conn.commit()
 
 
 @pytest.fixture
@@ -87,11 +108,7 @@ def api(tmp_path, monkeypatch, review_paths):
   (media_root / "crops" / "q1.png").write_bytes(png)
 
   engine = create_engine(f"sqlite:///{db_path}")
-  Base.metadata.create_all(engine)
-  with engine.connect() as conn:
-    for statement in FTS_SQL:
-      conn.exec_driver_sql(statement)
-    conn.commit()
+  create_schema(engine)
 
   with Session(engine) as session:
     exam = Exam(test_type=TestType.VESTIBULAR, year=2025, phase=Phase.PRIMEIRA)

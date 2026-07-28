@@ -15,3 +15,11 @@ exclude = ["notebooks", "src/static"]
 select = ["E", "F", "I", "BLE", "UP"]
 # Não exige docstrings
 ignore = ["D"]
+
+[tool.coverage.run]
+source = ["src"]
+# SQLAlchemy async faz a ponte sync↔async com greenlets, e o FastAPI executa
+# dependências em threads. Sem declarar as duas concorrências, o coverage não
+# instala o trace dentro delas e reporta como "não coberto" código que
+# demonstravelmente executou — os corpos dos endpoints apareciam todos vazios.
+concurrency = ["thread", "greenlet"]

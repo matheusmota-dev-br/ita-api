@@ -219,3 +219,8 @@ data/review/*
 !data/review/decisions.json
 !data/review/audit.jsonl
 !data/review/baseline.json
+
+# Artefato de medicao de cobertura
+coverage.json
+htmlcov/
+.coverage
