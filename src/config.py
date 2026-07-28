@@ -28,6 +28,10 @@ class Settings(BaseSettings):
   # auditoria real.
   review_dir: Path = PROJECT_ROOT / "data" / "review"
 
+  # Cache do enrich, indexado por sha do conteúdo. Configurável pelo mesmo
+  # motivo que `review_dir`: um teste não pode escrever no cache de verdade.
+  cache_dir: Path = PROJECT_ROOT / "data" / "cache"
+
   anthropic_api_key: str | None = None
   llm_model: str = "claude-opus-5"
 

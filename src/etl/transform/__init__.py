@@ -29,7 +29,7 @@ from src.etl.transform.intervals import (
   question_intervals_on_page,
 )
 from src.etl.transform.labels import Candidate, LabelStyle, detect_question_positions
-from src.etl.transform.main import main, run_transform
+from src.etl.transform.main import run_transform
 from src.etl.transform.manifest import ExamManifest, QuestionManifest
 from src.etl.transform.naming import ExamRef, iter_exam_refs, parse_pdf_path
 from src.etl.transform.pages import is_draft_page, is_essay_page, page_has_question
@@ -57,6 +57,10 @@ from src.etl.transform.text_extraction import (
 )
 from src.etl.transform.text_utils import normalize_key, strip_accents
 
+# A função `main` não é reexportada de propósito: o nome sombrearia o submódulo
+# de mesmo nome, e `import src.etl.transform.main` passaria a devolver a
+# função em vez do módulo. Quem precisa dela importa do módulo direto, como o
+# __main__.py já faz.
 __all__ = [
   "assign_disciplines",
   "block_contains_question",
@@ -91,7 +95,6 @@ __all__ = [
   "is_essay_page",
   "iter_exam_refs",
   "LabelStyle",
-  "main",
   "MARGIN_BOTTOM",
   "MARGIN_LEFT",
   "MARGIN_TOP",

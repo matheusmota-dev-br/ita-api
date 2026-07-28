@@ -10,9 +10,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.config import PROJECT_ROOT
+from src.config import settings
 
-CACHE_ROOT = PROJECT_ROOT / "data" / "cache" / "enrich"
+CACHE_ROOT = settings.cache_dir / "enrich"
 
 
 def cache_key(source_sha256: str, prompt_version: str, model: str) -> str:
