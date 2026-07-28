@@ -53,7 +53,7 @@ jobs:
       # Os testes constroem seus próprios bancos temporários e PDFs sintéticos:
       # não dependem do corpus baixado, que é gitignored.
       - name: Run tests
-        run: PYTHONPATH=. pipenv run pytest tests/ -q
+        run: pipenv run pytest -q
 
   format:
     name: Format

@@ -37,6 +37,11 @@ tasks:
     cmds:
       - '{{.ALEMBIC}} revision --autogenerate -m "{{.MSG}}"'
 
+  test:
+    desc: Run the test suite
+    cmds:
+      - pipenv run pytest -q
+
   check:
     desc: Run ruff check (lint)
     cmds:
