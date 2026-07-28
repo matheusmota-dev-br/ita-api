@@ -1,5 +1,4 @@
 import re
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 from selenium.webdriver.common.by import By
@@ -9,8 +8,8 @@ from src.etl.extract.constants import (
 )
 from src.utils.selenium_elements import (
   BaseElement,
-  SeleniumElement,
   ITAProvasFlow,
+  SeleniumElement,
   SeleniumTable,
   SeleniumTableRow,
 )
@@ -23,7 +22,7 @@ def _filename_starts_with_prova(href: str) -> bool:
   return name.startswith("Prova")
 
 
-def _parse_prova_href(href: str) -> Optional[Tuple[str, str]]:
+def _parse_prova_href(href: str) -> tuple[str, str] | None:
   if not href or not _filename_starts_with_prova(href):
     return None
   name = href.rstrip("/").split("/")[-1].split("?")[0]
@@ -40,7 +39,7 @@ def _parse_prova_href(href: str) -> Optional[Tuple[str, str]]:
 
 @dataclass
 class ProvasPosTable(SeleniumTable):
-  def get_data(self, driver) -> List[Dict[str, str]]:
+  def get_data(self, driver) -> list[dict[str, str]]:
     data = []
     ul = self.find(driver)
     rows = self.row.element.find_all(ul)

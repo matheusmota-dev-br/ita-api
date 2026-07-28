@@ -2,21 +2,20 @@
 
 import argparse
 import os
-import shutil
-import sys
 import platform
+import shutil
 import subprocess
-import zipfile
+import sys
 import tarfile
-import requests
+import zipfile
 from pathlib import Path
-from typing import Optional, Tuple
 
+import requests
 from tqdm import tqdm
 
-from src.utils.get_os import get_os
+from src.constants import Architecture, OperatingSystem
 from src.utils.get_arch import get_arch
-from src.constants import Architecture, OperatingSystem, OS_ARCH_MAP
+from src.utils.get_os import get_os
 
 CHROMEDRIVER_LATEST_URL = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
 
@@ -34,7 +33,7 @@ def _parse_major_version(version_output: str) -> str:
   return version.split(".")[0]
 
 
-def _get_chrome_version_macos() -> Optional[str]:
+def _get_chrome_version_macos() -> str | None:
   chrome_paths = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
@@ -53,7 +52,7 @@ def _get_chrome_version_macos() -> Optional[str]:
   return None
 
 
-def _get_chrome_version_linux() -> Optional[str]:
+def _get_chrome_version_linux() -> str | None:
   for binary in ("google-chrome", "chromium", "chromium-browser"):
     try:
       result = subprocess.run(
@@ -69,7 +68,7 @@ def _get_chrome_version_linux() -> Optional[str]:
   return None
 
 
-def _get_chrome_version_windows() -> Optional[str]:
+def _get_chrome_version_windows() -> str | None:
   import winreg
 
   registry_paths = [
@@ -87,7 +86,7 @@ def _get_chrome_version_windows() -> Optional[str]:
   return None
 
 
-def _get_chrome_version() -> Optional[str]:
+def _get_chrome_version() -> str | None:
   try:
     os_ = get_os()
 
@@ -98,8 +97,8 @@ def _get_chrome_version() -> Optional[str]:
     if os_ == OperatingSystem.WINDOWS:
       return _get_chrome_version_windows()
 
-  except Exception:
-    print("Error detecting Chrome version", file=sys.stderr)
+  except (OSError, subprocess.SubprocessError) as e:
+    print(f"Error detecting Chrome version: {e}", file=sys.stderr)
 
   return None
 
@@ -114,12 +113,12 @@ def _get_stable_channel_data():
     version = stable.get("version")
     downloads = stable.get("downloads", {}).get("chromedriver", [])
     return version, downloads
-  except Exception as e:
+  except (requests.RequestException, ValueError) as e:
     print(f"Error getting Chrome for Testing data: {e}", file=sys.stderr)
     return None, []
 
 
-def _get_chromedriver_url_for_platform(downloads: list) -> Tuple[str, str]:
+def _get_chromedriver_url_for_platform(downloads: list) -> tuple[str, str]:
   """Escolhe URL e extensão do ChromeDriver a partir da lista de downloads do JSON."""
   os_ = get_os()
   arch = get_arch()
@@ -212,7 +211,7 @@ def main():
   if chromedriver_path.exists():
     if not args.force:
       response = input(
-        f"ChromeDriver already exists in {chromedriver_path}. Do you want to replace it? (y/N): "
+        f"ChromeDriver already exists in {chromedriver_path}. Replace it? (y/N): "
       )
       if response.lower() != "y":
         print("Operation cancelled.")
@@ -234,7 +233,7 @@ def main():
 
   try:
     download_url, ext = _get_chromedriver_url_for_platform(chromedriver_downloads)
-  except Exception as e:
+  except RuntimeError as e:
     print(f"Error getting download URL: {e}", file=sys.stderr)
     sys.exit(1)
 
@@ -263,8 +262,8 @@ def main():
   except requests.exceptions.RequestException as e:
     print(f"Error downloading ChromeDriver: {e}", file=sys.stderr)
     sys.exit(1)
-  except Exception as e:
-    print(f"Unexpected error: {e}", file=sys.stderr)
+  except (OSError, zipfile.BadZipFile, tarfile.TarError) as e:
+    print(f"Error writing or extracting ChromeDriver: {e}", file=sys.stderr)
     sys.exit(1)
   finally:
     if temp_file.exists():
