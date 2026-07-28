@@ -7,6 +7,8 @@ requires-python = ">=3.10"
 indent-width = 2
 target-version = "py310"
 line-length = 88
+# Notebook exploratório: a lógica dele já foi portada para src/etl/transform/.
+exclude = ["notebooks", "src/static"]
 
 [tool.ruff.lint]
 # E=pycodestyle, F=Pyflakes, I=isort, BLE=blind-except (ex.: BLE001 não permite except Exception), UP=pyupgrade

@@ -15,6 +15,11 @@ tasks:
     cmds:
       - docker compose up -d api
 
+  review:
+    desc: "Serve a interface de auditoria em http://localhost:8000/review"
+    cmds:
+      - pipenv run uvicorn src.main:app --reload --port 8000
+
   api-stop:
     desc: Stop the API
     cmds:
@@ -47,7 +52,44 @@ tasks:
     cmds:
       - docker compose run --rm download-chromedriver
 
-  extraction:
-    desc: Run extraction
+  extract:
+    desc: "Download exam PDFs from the ITA site (use: task extract -- vestibular|pos|all)"
+    vars:
+      TARGET: '{{or .CLI_ARGS "all"}}'
     cmds:
-      - PYTHONPATH=. pipenv run python src/etl/extraction.py
+      - PYTHONPATH=. pipenv run python -m src.etl.extract {{.TARGET}}
+
+  transform:
+    desc: "Crop questions out of every downloaded PDF (use: task transform -- --force)"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.transform batch {{.CLI_ARGS}}
+
+  verify:
+    desc: "Confere o resultado contra o baseline (use: task verify -- --snapshot)"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.verify {{.CLI_ARGS}}
+
+  coverage:
+    desc: Summarise the transform coverage report
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.transform report
+
+  load:
+    desc: "Load processed artefacts into SQLite (use: task load -- --rebuild)"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.load {{.CLI_ARGS}}
+
+  db-rebuild:
+    desc: Drop the database, re-apply migrations and reload everything
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.load --rebuild --quiet
+
+  etl:
+    desc: "Run the whole pipeline: extract, transform, load"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.main {{.CLI_ARGS}}
+
+  enrich:
+    desc: "Normalise questions with the LLM (use: task enrich -- --dry-run)"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m src.etl.enrich {{.CLI_ARGS}}
