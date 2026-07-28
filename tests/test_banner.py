@@ -7,6 +7,8 @@ mesma entrada, mesmo SVG — mais o contrato de que cada questão aparece.
 
 import json
 import re
+import struct
+import zlib
 
 import pytest
 
@@ -126,6 +128,203 @@ def test_rotulo_de_materia_estreita_e_omitido():
   svg = banner.svg(dados, "dark")
   assert "matemática 2.000" in svg
   assert "português" not in svg
+
+
+def _paeth(a, b, c):
+  pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+  return a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+
+
+def escreve_png(caminho, larg, alt, pixels, canais=4, filtro=0, bits=8, cor=None):
+  """Codifica um PNG aplicando o filtro pedido — o inverso do que o banner faz.
+
+  Existe para exercitar os cinco filtros do formato de verdade: um decodificador
+  que só foi testado com filtro 0 passa sem nunca ter rodado o Paeth, que é
+  justamente o caminho onde um `& 0xFF` esquecido só aparece em imagem real.
+  """
+  cor = (6 if canais == 4 else 2) if cor is None else cor
+  passo = larg * canais
+  cru = bytes(pixels)
+  linhas = bytearray()
+  for y in range(alt):
+    linha = cru[y * passo : (y + 1) * passo]
+    ant = cru[(y - 1) * passo : y * passo] if y else bytes(passo)
+    saida = bytearray()
+    for i, valor in enumerate(linha):
+      esq = linha[i - canais] if i >= canais else 0
+      cima = ant[i]
+      diag = ant[i - canais] if i >= canais else 0
+      pred = {
+        0: 0,
+        1: esq,
+        2: cima,
+        3: (esq + cima) >> 1,
+        4: _paeth(esq, cima, diag),
+      }[filtro]
+      saida.append((valor - pred) & 0xFF)
+    linhas.append(filtro)
+    linhas += saida
+
+  def chunk(tipo, dados):
+    return (
+      struct.pack(">I", len(dados))
+      + tipo
+      + dados
+      + struct.pack(">I", zlib.crc32(tipo + dados) & 0xFFFFFFFF)
+    )
+
+  ihdr = struct.pack(">IIBBBBB", larg, alt, bits, cor, 0, 0, 0)
+  caminho.write_bytes(
+    b"\x89PNG\r\n\x1a\n"
+    + chunk(b"IHDR", ihdr)
+    + chunk(b"IDAT", zlib.compress(bytes(linhas)))
+    + chunk(b"IEND", b"")
+  )
+  return caminho
+
+
+@pytest.mark.parametrize("filtro", [0, 1, 2, 3, 4])
+def test_decodifica_os_cinco_filtros_do_png(tmp_path, filtro):
+  larg, alt = 5, 4
+  # Gradiente com virada de 255 -> 0, que é onde o módulo 256 do desfiltro pesa.
+  pixels = bytes(
+    (x * 61 + y * 97 + ch * 29) % 256
+    for y in range(alt)
+    for x in range(larg)
+    for ch in range(4)
+  )
+  png = escreve_png(tmp_path / f"f{filtro}.png", larg, alt, pixels, filtro=filtro)
+  assert banner._le_png(png) == (larg, alt, pixels, 4)
+
+
+def test_decodifica_png_sem_canal_alfa(tmp_path):
+  pixels = bytes(range(3 * 2 * 3))
+  png = escreve_png(tmp_path / "rgb.png", 3, 2, pixels, canais=3, filtro=1)
+  assert banner._le_png(png) == (3, 2, pixels, 3)
+
+
+def test_png_recusa_o_que_nao_sabe_ler(tmp_path):
+  naopng = tmp_path / "x.png"
+  naopng.write_bytes(b"GIF89a" + b"\x00" * 40)
+  with pytest.raises(ValueError, match="não é PNG"):
+    banner._le_png(naopng)
+
+  # Paleta (tipo 3) não é suportada, e desenhar como se fosse RGB daria lixo.
+  paleta = escreve_png(tmp_path / "p.png", 2, 2, bytes(12), canais=3, cor=3)
+  with pytest.raises(ValueError, match="8 bits RGB/RGBA"):
+    banner._le_png(paleta)
+
+
+def test_png_com_filtro_invalido_reclama(tmp_path):
+  png = escreve_png(tmp_path / "f9.png", 2, 2, bytes(16), filtro=0)
+  bruto = bytearray(png.read_bytes())
+  # Recomprime o IDAT com um byte de filtro inexistente na primeira scanline.
+  ini = bruto.index(b"IDAT") + 4
+  (tam,) = struct.unpack(">I", bruto[ini - 8 : ini - 4])
+  dados = bytearray(zlib.decompress(bytes(bruto[ini : ini + tam])))
+  dados[0] = 9
+  novo = zlib.compress(bytes(dados))
+  png.write_bytes(
+    bytes(bruto[: ini - 8])
+    + struct.pack(">I", len(novo))
+    + b"IDAT"
+    + novo
+    + struct.pack(">I", zlib.crc32(b"IDAT" + novo) & 0xFFFFFFFF)
+    + bytes(bruto[ini + tam + 4 :])
+  )
+  with pytest.raises(ValueError, match="filtro 9"):
+    banner._le_png(png)
+
+
+def test_emblema_recorta_na_caixa_de_tinta(tmp_path):
+  """Margem transparente não vira célula: a grade sai colada na tinta."""
+  larg, alt = 12, 12
+  px = bytearray(larg * alt * 4)
+  for y in range(4, 8):
+    for x in range(2, 10):  # bloco 8x4 de preto opaco, deslocado do canto
+      o = (y * larg + x) * 4
+      px[o : o + 4] = bytes((0, 0, 0, 255))
+  png = escreve_png(tmp_path / "bloco.png", larg, alt, bytes(px), filtro=0)
+  grade = banner.emblema_grade(png, cols=8)
+  assert len(grade[0]) == 8
+  assert len(grade) == 4  # 8 colunas * (4/8) de razão
+  assert all(all(linha) for linha in grade)  # tudo aceso: o recorte é só a tinta
+
+
+def test_emblema_ignora_o_branco(tmp_path):
+  """Branco opaco é fundo, e não tinta — é o que preserva os vãos das penas."""
+  larg = alt = 4
+  px = bytearray()
+  for y in range(alt):
+    for x in range(larg):
+      px += bytes((255, 255, 255, 255) if x >= 2 else (0, 0, 0, 255))
+  png = escreve_png(tmp_path / "meio.png", larg, alt, bytes(px), filtro=0)
+  grade = banner.emblema_grade(png, cols=2)
+  # A prova está na razão: a caixa de tinta é a metade escura (2x4), então com 2
+  # colunas saem 4 linhas. Se o branco contasse, a caixa seria 4x4 e daria 2.
+  assert (len(grade[0]), len(grade)) == (2, 4)
+  assert all(all(linha) for linha in grade)
+
+
+def test_emblema_sem_tinta_reclama(tmp_path):
+  vazio = escreve_png(tmp_path / "vazio.png", 3, 3, bytes(36), filtro=0)
+  with pytest.raises(ValueError, match="nenhum pixel de tinta"):
+    banner.emblema_grade(vazio)
+
+
+def test_emblema_real_e_deterministico():
+  """O PNG está versionado, então a grade dele é fixa — é o que prende o SVG."""
+  a = banner.emblema_grade()
+  b = banner.emblema_grade()
+  assert a == b
+  assert len(a[0]) == banner.EMBLEMA_COLS
+  assert len(a) == 20  # 52 colunas na razão 496x188
+  assert sum(map(sum, a)) == 443
+
+
+def test_svg_desenha_o_emblema_so_quando_recebe_a_grade():
+  sem = banner.svg(BASELINE_FAKE, "dark")
+  com = banner.svg(BASELINE_FAKE, "dark", banner.emblema_grade())
+  assert com.count("<path") == sem.count("<path") + 1
+  assert quadrados(com) == quadrados(sem) + 443
+
+
+def test_emblema_ausente_nao_impede_o_banner(baseline, tmp_path, capsys):
+  argv = [
+    "--baseline",
+    str(baseline),
+    "--out-dir",
+    str(tmp_path / "docs"),
+    "--logo",
+    str(tmp_path / "nao-existe.png"),
+  ]
+  assert banner.main(argv) == 0
+  assert "emblema ausente" in capsys.readouterr().out
+  assert (tmp_path / "docs" / "banner-dark.svg").exists()
+
+
+def test_emblema_ilegivel_falha_em_vez_de_desenhar_errado(baseline, tmp_path, capsys):
+  ruim = tmp_path / "ruim.png"
+  ruim.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 20)
+  argv = [
+    "--baseline",
+    str(baseline),
+    "--out-dir",
+    str(tmp_path / "d"),
+    "--logo",
+    str(ruim),
+  ]
+  assert banner.main(argv) == 2
+  assert "ilegível" in capsys.readouterr().err
+
+
+def test_preview_do_emblema_nao_escreve_svg(tmp_path, capsys):
+  saida = tmp_path / "docs"
+  assert banner.main(["--preview-emblema", "--out-dir", str(saida)]) == 0
+  out = capsys.readouterr().out
+  assert "52x20 células" in out
+  assert "█" in out
+  assert not saida.exists()
 
 
 def test_texto_do_svg_e_escapado():

@@ -1,15 +1,21 @@
 """Gera o banner do README a partir do baseline versionado.
 
-Deterministico por construcao: a unica entrada e `data/review/baseline.json`, o
-mesmo arquivo que o `task verify` compara. Nada de random, nada de data/hora,
-nada de ler o `.db` (que e gitignored) — dois clones do repo produzem SVGs
-byte a byte identicos, e o `git diff` do banner so muda quando o corpus muda.
+Deterministico por construcao: as entradas sao `data/review/baseline.json` — o
+mesmo arquivo que o `task verify` compara — e `tools/assets/ita-logo.png`, as
+duas versionadas. Nada de random, nada de data/hora, nada de ler o `.db` (que e
+gitignored) e nada de rede: dois clones do repo produzem SVGs byte a byte
+identicos, e o `git diff` do banner so muda quando o corpus muda.
 
-  PYTHONPATH=. pipenv run python -m tools.banner        # regrava os dois temas
-  PYTHONPATH=. pipenv run python -m tools.banner --check # falha se estiver stale
+  PYTHONPATH=. pipenv run python -m tools.banner            # regrava os temas
+  PYTHONPATH=. pipenv run python -m tools.banner --check     # falha se stale
+  PYTHONPATH=. pipenv run python -m tools.banner --preview-emblema
 
 Cada questao do corpus e um quadradinho. As torres sao os anos; a barra de
-baixo e a divisao por materia.
+baixo e a divisao por materia; e o emblema a esquerda e um mosaico da mesma
+grade, amostrado do PNG com stdlib — nao a imagem embutida.
+
+O emblema e marca do ITA, aqui como referencia a origem das provas. Projeto
+independente, sem vinculo nem endosso do Instituto Tecnologico de Aeronautica.
 """
 
 from __future__ import annotations
@@ -17,12 +23,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import struct
 import sys
 import unicodedata
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = ROOT / "data" / "review" / "baseline.json"
+LOGO = ROOT / "tools" / "assets" / "ita-logo.png"
 OUT_DIR = ROOT / "docs"
 
 # Geometria, em unidades do viewBox.
@@ -33,6 +42,20 @@ CELL = 6.0  # passo da grade
 DOT = 4.4  # lado do quadradinho (CELL - DOT = respiro de 1.6)
 BASELINE_Y = 306.0  # onde as torres se apoiam
 BAR_Y, BAR_H = 350.0, 14.0
+
+# O emblema, em mosaico da mesma grade das questoes, num passo mais fino.
+# A 44 celulas ele virava borrao no tamanho renderizado; 52 e onde as asas, a
+# tocha e os dentes da engrenagem voltam a se distinguir.
+EMBLEMA_COLS = 52  # largura em celulas; a altura sai da razao do PNG
+EMBLEMA_CELL = 4.0
+EMBLEMA_DOT = 3.0
+EMBLEMA_TOPO = 48.0
+# Ele fica a esquerda, e o bloco de texto comeca depois dele.
+TEXTO_X = PAD + EMBLEMA_COLS * EMBLEMA_CELL + 28
+# Opaco e nao-branco conta como tinta. O limiar deixa o branco de fora, o que
+# preserva os vaos entre as penas; 0.45 de cobertura da celula acende o quadrado.
+EMBLEMA_LUM_MAX = 228
+EMBLEMA_COBERTURA = 0.45
 
 # Paleta: azul sequencial para as torres (uma serie so, sem legenda), e os cinco
 # primeiros slots categoricos para a barra de materias — nessa ordem os pares
@@ -166,6 +189,142 @@ def texto(
   return f"<text {' '.join(attrs)}>{esc(s)}</text>"
 
 
+def _le_png(caminho: Path) -> tuple[int, int, bytes, int]:
+  """Decodifica um PNG RGB/RGBA de 8 bits, nao-entrelaçado, com stdlib.
+
+  O gerador precisa continuar sem dependencia: o passo do CI que confere o
+  banner roda num job que nao instala PyMuPDF nem Pillow, e depender de um
+  decodificador externo colocaria a saida a merce da versao dele. `zlib` mais o
+  desfiltro do proprio PNG dao o mesmo pixel em qualquer maquina.
+
+  Levanta `ValueError` para o que nao sabe ler, em vez de desenhar errado.
+  """
+  b = caminho.read_bytes()
+  if b[:8] != b"\x89PNG\r\n\x1a\n":
+    raise ValueError(f"{caminho.name}: não é PNG")
+  pos, idat, cabecalho = 8, bytearray(), None
+  while pos + 8 <= len(b):
+    (tam,) = struct.unpack(">I", b[pos : pos + 4])
+    tipo = b[pos + 4 : pos + 8]
+    dados = b[pos + 8 : pos + 8 + tam]
+    if tipo == b"IHDR":
+      larg, alt, bits, cor, _, _, entrelace = struct.unpack(">IIBBBBB", dados)
+      if bits != 8 or cor not in (2, 6) or entrelace:
+        raise ValueError(
+          f"{caminho.name}: só PNG de 8 bits RGB/RGBA não-entrelaçado "
+          f"(bits={bits}, tipo={cor}, entrelace={entrelace})"
+        )
+      cabecalho = (larg, alt, 4 if cor == 6 else 3)
+    elif tipo == b"IDAT":
+      idat += dados
+    elif tipo == b"IEND":
+      break
+    pos += 12 + tam
+  if cabecalho is None:
+    raise ValueError(f"{caminho.name}: sem IHDR")
+
+  larg, alt, canais = cabecalho
+  cru = zlib.decompress(bytes(idat))
+  passo = larg * canais
+  if len(cru) < alt * (passo + 1):
+    raise ValueError(f"{caminho.name}: IDAT truncado")
+
+  # Desfiltro: cada scanline vem com um dos cinco filtros do PNG no primeiro
+  # byte, e cada um se resolve contra o pixel da esquerda e/ou a linha de cima.
+  saida = bytearray(alt * passo)
+  anterior = bytearray(passo)
+  p = 0
+  for y in range(alt):
+    filtro = cru[p]
+    p += 1
+    linha = bytearray(cru[p : p + passo])
+    p += passo
+    if filtro == 1:  # Sub
+      for i in range(canais, passo):
+        linha[i] = (linha[i] + linha[i - canais]) & 0xFF
+    elif filtro == 2:  # Up
+      for i in range(passo):
+        linha[i] = (linha[i] + anterior[i]) & 0xFF
+    elif filtro == 3:  # Average
+      for i in range(passo):
+        esq = linha[i - canais] if i >= canais else 0
+        linha[i] = (linha[i] + ((esq + anterior[i]) >> 1)) & 0xFF
+    elif filtro == 4:  # Paeth
+      for i in range(passo):
+        a = linha[i - canais] if i >= canais else 0
+        cima = anterior[i]
+        diag = anterior[i - canais] if i >= canais else 0
+        pa, pb, pc = abs(cima - diag), abs(a - diag), abs(a + cima - 2 * diag)
+        pr = a if (pa <= pb and pa <= pc) else (cima if pb <= pc else diag)
+        linha[i] = (linha[i] + pr) & 0xFF
+    elif filtro != 0:
+      raise ValueError(f"{caminho.name}: filtro {filtro} desconhecido na linha {y}")
+    saida[y * passo : (y + 1) * passo] = linha
+    anterior = linha
+  return larg, alt, bytes(saida), canais
+
+
+def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[int]]:
+  """Reduz o emblema a uma grade de 0/1, recortada na caixa de tinta.
+
+  Uma silhueta, e nao o emblema colorido: o dourado saturado e o vermelho da
+  tocha brigariam com a rampa azul, e a 50px de altura as penas viram borrao de
+  qualquer jeito. Em tom unico ele lê como marca e o azul segue exclusivo dos
+  dados. Tentei duas tonalidades por luminancia para recuperar as letras `ITA`,
+  mas elas so resolvem com o emblema ~3x maior; no tamanho do cabecalho o
+  segundo tom vira ruido nas asas.
+  """
+  larg, alt, px, canais = _le_png(caminho)
+  tinta = bytearray(larg * alt)
+  for i in range(larg * alt):
+    o = i * canais
+    if canais == 4 and px[o + 3] < 128:
+      continue
+    lum = 0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]
+    tinta[i] = 1 if lum < EMBLEMA_LUM_MAX else 0
+
+  colunas = [x for x in range(larg) if any(tinta[y * larg + x] for y in range(alt))]
+  linhas = [y for y in range(alt) if any(tinta[y * larg + x] for x in range(larg))]
+  if not colunas or not linhas:
+    raise ValueError(f"{caminho.name}: nenhum pixel de tinta")
+  x0, x1 = colunas[0], colunas[-1] + 1
+  y0, y1 = linhas[0], linhas[-1] + 1
+  cx, cy = x1 - x0, y1 - y0
+  rows = max(1, round(cols * cy / cx))
+
+  # Media de caixa por celula, e nao amostra pontual: com 11px de fonte por
+  # celula, um ponto no lugar errado apaga uma pena inteira.
+  grade = []
+  for r in range(rows):
+    linha = []
+    for c in range(cols):
+      sx0 = x0 + cx * c // cols
+      sx1 = max(sx0 + 1, x0 + cx * (c + 1) // cols)
+      sy0 = y0 + cy * r // rows
+      sy1 = max(sy0 + 1, y0 + cy * (r + 1) // rows)
+      total = (sx1 - sx0) * (sy1 - sy0)
+      cheias = sum(
+        tinta[y * larg + x] for y in range(sy0, sy1) for x in range(sx0, sx1)
+      )
+      linha.append(1 if cheias / total >= EMBLEMA_COBERTURA else 0)
+    grade.append(linha)
+  return grade
+
+
+def emblema(t: dict, grade: list[list[int]]) -> list[str]:
+  """Desenha o mosaico à esquerda, em lockup com o wordmark."""
+  d = [
+    f"M{PAD + c * EMBLEMA_CELL:.1f} {EMBLEMA_TOPO + r * EMBLEMA_CELL:.1f}"
+    f"h{EMBLEMA_DOT:g}v{EMBLEMA_DOT:g}h-{EMBLEMA_DOT:g}z"
+    for r, linha in enumerate(grade)
+    for c, ligado in enumerate(linha)
+    if ligado
+  ]
+  if not d:
+    return []
+  return [f'<path fill="{t["ink_soft"]}" d="{"".join(d)}"/>']
+
+
 def torres(por_ano: dict[str, int], t: dict) -> list[str]:
   """Uma torre por ano; um quadradinho por questao, preenchendo de baixo pra cima.
 
@@ -258,7 +417,7 @@ def barra_materias(por_materia: dict[str, int], t: dict) -> list[str]:
   return out
 
 
-def svg(dados: dict, tema: str) -> str:
+def svg(dados: dict, tema: str, grade_emblema: list[list[int]] | None = None) -> str:
   t = THEMES[tema]
   c = dados["counts"]
   anos = sorted(dados["by_year"])
@@ -270,9 +429,9 @@ def svg(dados: dict, tema: str) -> str:
     f' aria-label="ita-api: {grupos(c["questions"])} questões do ITA,'
     f' {anos[0]}–{anos[-1]}, extraídas de {c["documents"]} PDFs oficiais.">',
     f'<rect width="{W}" height="{H}" fill="{t["surface"]}"/>',
-    texto(PAD, 82, "ita-api", size=46, fill=t["ink"], weight="bold", spacing=-1.2),
+    texto(TEXTO_X, 82, "ita-api", size=46, fill=t["ink"], weight="bold", spacing=-1.2),
     texto(
-      PAD,
+      TEXTO_X,
       108,
       "Banco de questões dos vestibulares e da pós do ITA, "
       "extraídas dos PDFs oficiais e servidas por uma API.",
@@ -280,7 +439,7 @@ def svg(dados: dict, tema: str) -> str:
       fill=t["ink_soft"],
     ),
     texto(
-      PAD,
+      TEXTO_X,
       132,
       " · ".join(
         [
@@ -321,6 +480,8 @@ def svg(dados: dict, tema: str) -> str:
     f'<line x1="{PAD}" y1="{BASELINE_Y + 2.5:g}" x2="{W - PAD}"'
     f' y2="{BASELINE_Y + 2.5:g}" stroke="{t["rule"]}" stroke-width="1"/>',
   ]
+  if grade_emblema:
+    partes += emblema(t, grade_emblema)
   partes += torres(dados["by_year"], t)
   partes += barra_materias(dados["by_discipline"], t)
   partes.append(
@@ -356,7 +517,41 @@ def main(argv: list[str] | None = None) -> int:
   )
   ap.add_argument("--baseline", type=Path, default=BASELINE)
   ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
+  ap.add_argument(
+    "--logo",
+    type=Path,
+    default=LOGO,
+    help="PNG do emblema; `--logo ''` desenha o banner sem ele",
+  )
+  ap.add_argument(
+    "--preview-emblema",
+    action="store_true",
+    help="imprime o mosaico do emblema em texto e sai, sem escrever SVG",
+  )
   args = ap.parse_args(argv)
+
+  # O emblema é ornamento: se o PNG faltar, o banner sai sem ele em vez de o
+  # gerador morrer. Um PNG ilegível, porém, é erro — significa que alguém trocou
+  # o arquivo por algo que este decodificador não lê, e desenhar a silhueta
+  # errada calado seria pior.
+  grade = None
+  if args.logo and Path(args.logo).exists():
+    try:
+      grade = emblema_grade(Path(args.logo))
+    except ValueError as erro:
+      print(f"emblema ilegível: {erro}", file=sys.stderr)
+      return 2
+  elif args.logo:
+    print(f"emblema ausente ({curto(Path(args.logo))}), seguindo sem ele.")
+
+  if args.preview_emblema:
+    if not grade:
+      print("sem emblema para pré-visualizar.", file=sys.stderr)
+      return 2
+    for linha in grade:
+      print("".join("██" if v else "  " for v in linha))
+    print(f"{EMBLEMA_COLS}x{len(grade)} células, {sum(map(sum, grade))} quadrados")
+    return 0
 
   if not args.baseline.exists():
     print(
@@ -375,7 +570,7 @@ def main(argv: list[str] | None = None) -> int:
   stale = []
   for tema in THEMES:
     destino = args.out_dir / f"banner-{tema}.svg"
-    conteudo = svg(dados, tema)
+    conteudo = svg(dados, tema, grade)
     atual = destino.read_text(encoding="utf-8") if destino.exists() else None
     if args.check:
       if atual != conteudo:

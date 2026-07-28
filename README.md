@@ -289,22 +289,36 @@ procedimento passo a passo para reconstruir do zero está em
 ### O banner
 
 ```bash
-task banner                  # redesenha docs/banner-{light,dark}.svg
-task banner -- --check       # falha se o SVG em disco discordar do baseline
+task banner                       # redesenha docs/banner-{light,dark}.svg
+task banner -- --check            # falha se o SVG em disco discordar do baseline
+task banner -- --preview-emblema  # imprime o mosaico do emblema em texto
 ```
 
 `tools/banner.py` desenha o banner do topo com a stdlib e nada mais: um quadrado
 por questão, agrupados em torres por ano, com a divisão por matéria embaixo.
 
-A única entrada é `data/review/baseline.json` — o mesmo arquivo do `verify`, e
-não o `.db`, que é gitignored. Não há `random`, nem timestamp, nem leitura de
-rede, então dois clones do repositório produzem SVGs byte a byte idênticos e o
-banner só aparece no `git diff` quando o corpus realmente muda. O `--check` é o
-que impede o gráfico de mentir depois de um `task load`.
+As duas entradas são versionadas: `data/review/baseline.json` — o mesmo arquivo
+do `verify`, e não o `.db` — e `tools/assets/ita-logo.png`. Não há `random`, nem
+timestamp, nem leitura de rede, então dois clones do repositório produzem SVGs
+byte a byte idênticos e o banner só aparece no `git diff` quando o corpus
+realmente muda. O `--check` é o que impede o gráfico de mentir depois de um
+`task load`.
+
+O emblema à esquerda é um **mosaico da mesma grade dos dados**, e não a imagem
+embutida: o PNG é decodificado com `zlib` puro — o passo do CI roda num job sem
+PyMuPDF nem Pillow — e reduzido a uma silhueta de 52×20 células, amostrando a
+cobertura de tinta de cada célula. Em tom único de propósito: o dourado saturado
+e o vermelho da tocha brigariam com a rampa azul, e assim o azul segue exclusivo
+dos dados. Duas tonalidades recuperariam as letras `ITA`, mas só com o emblema
+~3× maior; no tamanho do cabeçalho o segundo tom vira ruído nas asas.
 
 Os dois temas existem porque o `<picture>` do GitHub troca de arquivo conforme o
 tema do leitor; o escuro não é o claro invertido — cada um tem seus próprios
 passos da rampa, escolhidos contra o respectivo fundo.
+
+> O emblema é marca do ITA, reproduzido aqui como referência à origem das provas.
+> Este é um projeto independente, **sem vínculo, endosso ou afiliação** com o
+> Instituto Tecnológico de Aeronáutica.
 
 ## Testes
 
