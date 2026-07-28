@@ -50,14 +50,26 @@ cp .env.example .env
 
 ---
 
-## Passo 1 — Extract
+## Passo 1 — Extract (**opcional**: o corpus vem no clone)
 
 ```bash
 task migrate
-task extract
 ```
 
-Raspa `vestibular.ita.br` e `civil.ita.br/posgrad` e baixa os PDFs.
+Os 158 PDFs e os `_index.json` são versionados no repositório, em
+`data/vestibular/` e `data/pos/` — 108 MB que um clone já traz. **Um clone limpo
+começa no passo 2.** Não é conveniência: o scraper depende de XPaths de uma
+página com `<frame>` de 2008, e o dia em que o site for redesenhado nenhum
+código deste repositório traz os PDFs de volta. Versioná-los troca "raspar de
+novo e rezar" por "conferir o sha256".
+
+```bash
+task extract    # só para buscar provas de um ano novo
+```
+
+Raspa `vestibular.ita.br` e `civil.ita.br/posgrad` e baixa o que falta. É
+idempotente e endereçado por sha256: rodá-lo sobre o corpus versionado não
+rebaixa nada e não muda nenhum byte em disco.
 
 **Esperado:** 116 PDFs de vestibular, 42 de pós, 1 falha conhecida
 (`prova_ita_pos_2018_2o_semestre_matematica.pdf` é um 404 no servidor do ITA —
@@ -66,12 +78,10 @@ o link existe na página, o arquivo não).
 **Registro:** `data/{vestibular,pos}/provas/_index.json` guarda, por arquivo, de
 qual das três tabelas históricas do site ele veio, mais a URL e o sha256. **Esse
 sidecar é a única coisa que desambigua as eras** — a coluna `fisica` significa
-prova de fase única em 2008–2018 e prova de 2ª fase de 2019 em diante.
-`download_report.json` registra sucessos e falhas.
-
-> **Se o site do ITA mudar**, o scraper quebra (depende de XPaths de uma página
-> com `<frame>` de 2008). Os `_index.json` e os PDFs em disco bastam para
-> reproduzir tudo a partir do passo 2 — vale arquivá-los.
+prova de fase única em 2008–2018 e prova de 2ª fase de 2019 em diante. Por isso
+ele é versionado junto dos PDFs: um sem o outro é um corpus que ninguém
+interpreta. O `download_report.json`, ao contrário, é estado de uma execução e
+fica de fora.
 
 ## Passo 2 — Transform
 
@@ -206,12 +216,17 @@ decisão individual — a auditoria em si é auditável.
 
 ```bash
 task verify -- --snapshot     # grava o novo estado como baseline
-git add data/review/ && git commit -m "auditoria: <o que foi revisado>"
+task banner                   # redesenha o banner do README com as novas contagens
+git add data/review/ docs/ && git commit -m "auditoria: <o que foi revisado>"
 ```
 
 O `--snapshot` deve ser um ato deliberado, num commit próprio: ele redefine o
 que conta como "correto". Nunca o rode para silenciar uma divergência que você
 não entendeu.
+
+O banner sai do baseline, então um snapshot sem `task banner` deixa o gráfico do
+README contando a história antiga. O CI reprova esse caso (`task banner --
+--check`), mas o commit certo já traz os dois juntos.
 
 ---
 
@@ -225,21 +240,60 @@ não entendeu.
 | Enrich | Não | O LLM é amostral. O cache em disco congela o resultado de uma execução. |
 | Load | Sim | Upsert por chave natural, sem dependência de ordem. |
 | Revisão | Não aplicável | Registrada, não recomputada. |
+| Banner | Sim | Só lê o baseline; sem `random`, sem timestamp. Mesmo baseline, SVG byte a byte igual. |
 
 Os `id` autoincremento **mudam** a cada `--rebuild` e por isso nenhum deles
 entra no fingerprint. Compare por chave natural, nunca por id.
 
 ---
 
-## Reproduzir sem baixar os PDFs de novo
-
-O `data/` é gitignored (exceto `data/review/`), então um clone limpo não tem o
-corpus. Para transferir sem depender do site:
+## O que o clone traz, e o que ele não traz
 
 ```bash
-tar czf ita-corpus.tar.gz data/vestibular data/pos     # ~108 MB
-# na outra máquina, depois de extrair:
-task transform && task load -- --rebuild && task verify
+git clone <repo> && cd ita-api
+pipenv install --dev && cp .env.example .env
+task migrate && task transform && task load -- --rebuild && task verify
 ```
 
-Os `_index.json` vão junto, então a desambiguação das eras é preservada.
+Sem `task extract` e sem rede: o corpus e a revisão humana vêm no clone, o resto
+é recomputado.
+
+| Versionado | Por quê |
+|---|---|
+| `data/{vestibular,pos}/**.pdf` | 158 PDFs, 108 MB. Irrecuperáveis se o site mudar. |
+| `data/*/provas/_index.json` | Desambigua as eras. Sem ele os PDFs não se interpretam. |
+| `data/*/*_formato_*.json` | As tabelas raspadas, com a URL de origem de cada arquivo. |
+| `data/review/*` | Revisão humana. O pipeline não a recomputa. |
+| `docs/banner-*.svg` | Gerado, mas do baseline — o CI confere. |
+
+| Ignorado | Por quê |
+|---|---|
+| `data/processed/` | 396 MB derivados, `task transform` refaz. 98 MB são só `debug/`. |
+| `data/ita.db` | 11 MB reescritos por inteiro a cada `load` — um blob novo por commit. |
+| `data/cache/enrich/` | Respostas do LLM. Caras de refazer, mas não determinísticas. |
+| `data/*/download_report.json` | Estado de uma execução, não do corpus. |
+
+Os PDFs pesam no clone. Para pular os blobs antigos:
+
+```bash
+git clone --filter=blob:none <repo>     # busca os PDFs sob demanda
+git clone --depth 1 <repo>              # só o commit do topo
+```
+
+**Conferir o corpus contra o que foi publicado**, sem rebaixar nada: os
+`_index.json` guardam o sha256 de cada arquivo na origem.
+
+```bash
+python3 - <<'PY'
+import hashlib, json, pathlib
+for idx in pathlib.Path("data").glob("*/provas/_index.json"):
+  for nome, meta in json.loads(idx.read_text()).items():
+    pdf = idx.parent / nome
+    if not pdf.exists() or "sha256" not in meta:
+      continue
+    real = hashlib.sha256(pdf.read_bytes()).hexdigest()
+    if real != meta["sha256"]:
+      print("DIVERGE", pdf, meta["sha256"], real)
+print("fim")
+PY
+```

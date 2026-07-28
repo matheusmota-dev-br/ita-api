@@ -1,0 +1,22 @@
+[
+  {
+    "year": "2026",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2026_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2026.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2026_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2026_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2026_2f.pdf",
+    "portugues": "https://www.vestibular.ita.br/provas/portugues_2026_2f.pdf",
+    "answer_key_2f": "https://www.vestibular.ita.br/provas/gabarito_2026_2f.pdf"
+  },
+  {
+    "year": "2025",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2025_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2025.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2025_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2025_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2025_2f.pdf",
+    "portugues": "https://www.vestibular.ita.br/provas/portugues_2025_2f.pdf",
+    "answer_key_2f": "https://www.vestibular.ita.br/provas/gabarito_2025_2f.pdf"
+  }
+]
