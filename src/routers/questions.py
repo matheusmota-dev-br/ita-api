@@ -84,6 +84,7 @@ def _to_summary(question: Question, excerpt: str | None = None) -> QuestionSumma
     has_figure=question.has_figure,
     image_url=_image_url(question),
     review_status=question.review_status,
+    needs_llm=question.needs_llm,
     excerpt=excerpt,
   )
 

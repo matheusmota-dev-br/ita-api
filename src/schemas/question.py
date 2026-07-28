@@ -66,6 +66,11 @@ class QuestionSummary(BaseModel):
   has_figure: bool | None = None
   image_url: str | None = None
   review_status: ReviewStatus
+  # Override manual da triagem: True força o enrich, False o dispensa, ausente
+  # deixa a heurística decidir. Estava faltando no schema, então a interface
+  # gravava o valor e nunca o lia de volta — as marcas "precisa/dispensa LLM"
+  # não apareciam e os botões nunca ficavam destacados.
+  needs_llm: bool | None = None
   # Preenchido só quando a busca full-text foi usada.
   excerpt: str | None = None
 

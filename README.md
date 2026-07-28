@@ -133,7 +133,7 @@ Documentação interativa em `/docs`.
 
 | Endpoint | |
 |---|---|
-| `GET /api/v1/questions` | filtros por `year`, `test_type`, `phase`, `discipline`, `topic`, `format_type`, `has_figure`, `has_answer`, `review_status` e busca full-text em `q` |
+| `GET /api/v1/questions` | filtros por `year`, `test_type`, `phase`, `discipline`, `topic`, `format_type`, `has_figure`, `has_answer`, `review_status` e busca full-text em `q`. Paginação por `page` e `page_size`; o envelope traz `{items, total, page, page_size, pages}` |
 | `GET /api/v1/questions/random` | uma questão aleatória, com os mesmos filtros |
 | `GET /api/v1/questions/{id}` | detalhe com alternativas, páginas e fonte |
 | `GET /api/v1/questions/{id}/image` | o recorte em PNG |
