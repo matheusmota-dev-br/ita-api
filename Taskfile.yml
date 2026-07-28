@@ -84,6 +84,11 @@ tasks:
     cmds:
       - PYTHONPATH=. pipenv run python -m src.etl.verify {{.CLI_ARGS}}
 
+  banner:
+    desc: "Redesenha o banner do README a partir do baseline (use: task banner -- --check)"
+    cmds:
+      - PYTHONPATH=. pipenv run python -m tools.banner {{.CLI_ARGS}}
+
   coverage:
     desc: Summarise the transform coverage report
     cmds:

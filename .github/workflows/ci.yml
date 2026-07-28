@@ -79,3 +79,9 @@ jobs:
 
       - name: Ruff format check
         run: pipenv run ruff format --check .
+
+      # O banner do README é gerado a partir do baseline versionado. Se alguém
+      # atualizar as contagens sem redesenhá-lo, o gráfico passa a mentir — e
+      # isso é invisível numa review. Só stdlib, então roda sem o corpus.
+      - name: Banner em dia com o baseline
+        run: PYTHONPATH=. pipenv run python -m tools.banner --check

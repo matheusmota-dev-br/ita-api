@@ -1,4 +1,10 @@
-# ita-api
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+    <img src="docs/banner-light.svg" width="100%"
+         alt="ita-api — 2.730 questões do ITA entre 2008 e 2026, extraídas de 158 PDFs oficiais. Cada quadrado é uma questão, as torres são os anos e a barra de baixo é a divisão por matéria.">
+  </picture>
+</p>
 
 Banco de questões dos vestibulares e do processo seletivo de pós-graduação do
 ITA, extraídas dos PDFs oficiais e servidas por uma API FastAPI.
@@ -12,12 +18,18 @@ carrega o resultado num arquivo SQLite. A API consome esse arquivo.
 | | |
 |---|---|
 | PDFs baixados | 158 (vestibular 2008–2026, pós 2011–2026) |
+| Provas (ano + fase) | 57 |
 | Questões extraídas | 2730, em 152 documentos |
 | Documentos sem detecção | 0 |
+| Questões com recorte e texto | 2730 (100%) |
 | Questões com matéria identificada | 2730 (100%) |
+| Alternativas com texto | 9252 |
 | Respostas de gabarito | 1619, 99% com matéria identificada |
-| Questões com resposta conhecida | 1479 |
+| Questões com resposta conhecida | 1479 (54%) |
 | Documentos recuperados por OCR | 11 |
+
+Esses números não são digitados à mão: saem de `data/review/baseline.json`, que
+é o que o `task verify` compara e o que o banner acima desenha.
 
 ## Pré-requisitos
 
@@ -37,12 +49,16 @@ cp .env.example .env
 
 ```bash
 task migrate                 # cria data/ita.db com o schema
-task extract                 # baixa os PDFs do site do ITA (~108 MB)
 task transform               # recorta as questões e parseia os gabaritos
 task enrich -- --dry-run     # estima o custo do LLM antes de gastar
 task load                    # carrega tudo no SQLite
 task api                     # sobe a API em :8000
 ```
+
+**Não há `task extract` aí de propósito: os 158 PDFs vêm no clone.** Eles estão
+versionados em `data/{vestibular,pos}/` — 108 MB — junto dos `_index.json` que
+os desambiguam. `task extract` continua existindo para buscar as provas de um ano
+novo, e é idempotente: rodá-lo sobre o corpus versionado não muda um byte.
 
 Cada estágio é idempotente: rodar de novo não refaz o que já está pronto.
 `task etl` encadeia extract → transform → load.
@@ -53,12 +69,16 @@ Raspa as três tabelas históricas de `vestibular.ita.br` e a lista de
 `civil.ita.br/posgrad` com Selenium, e baixa cada PDF.
 
 Grava um sidecar `_index.json` junto dos PDFs mapeando arquivo → formato, ano,
-coluna e URL. **Isso é essencial**: a coluna `fisica` significa prova de fase
-única em 2008–2018 e prova de 2ª fase de 2019 em diante, e o nome do arquivo
-sozinho não distingue os dois casos.
+coluna, URL e sha256. **Isso é essencial**: a coluna `fisica` significa prova de
+fase única em 2008–2018 e prova de 2ª fase de 2019 em diante, e o nome do
+arquivo sozinho não distingue os dois casos.
 
 Falhas de download entram em `download_report.json` e no exit code — um corpus
 parcial não pode passar por completo.
+
+O sha256 de cada arquivo fica no sidecar, então dá para conferir o corpus
+versionado contra o que o ITA publicou sem baixar nada de novo — o script está em
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md). Hoje: 158 de 158 íntegros.
 
 ### 2. Transform — `src/etl/transform/`
 
@@ -266,6 +286,26 @@ quais e o que mudou no ambiente (versões de PyMuPDF, Tesseract, git sha). O
 procedimento passo a passo para reconstruir do zero está em
 [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
 
+### O banner
+
+```bash
+task banner                  # redesenha docs/banner-{light,dark}.svg
+task banner -- --check       # falha se o SVG em disco discordar do baseline
+```
+
+`tools/banner.py` desenha o banner do topo com a stdlib e nada mais: um quadrado
+por questão, agrupados em torres por ano, com a divisão por matéria embaixo.
+
+A única entrada é `data/review/baseline.json` — o mesmo arquivo do `verify`, e
+não o `.db`, que é gitignored. Não há `random`, nem timestamp, nem leitura de
+rede, então dois clones do repositório produzem SVGs byte a byte idênticos e o
+banner só aparece no `git diff` quando o corpus realmente muda. O `--check` é o
+que impede o gráfico de mentir depois de um `task load`.
+
+Os dois temas existem porque o `<picture>` do GitHub troca de arquivo conforme o
+tema do leitor; o escuro não é o claro invertido — cada um tem seus próprios
+passos da rampa, escolhidos contra o respectivo fundo.
+
 ## Testes
 
 ```bash
@@ -274,8 +314,8 @@ task check                   # ruff
 task format                  # ruff format
 ```
 
-Os testes constroem PDFs sintéticos e bancos temporários — não dependem do
-corpus baixado, que é gitignored.
+Os testes constroem PDFs sintéticos e bancos temporários — não tocam no corpus
+versionado, então nenhum deles depende de `task transform` ter rodado.
 
 ## Limitações conhecidas
 
@@ -286,8 +326,11 @@ corpus baixado, que é gitignored.
   degrada. Essas questões são candidatas prioritárias ao estágio de enrich, que
   lê da imagem.
 - **O scraper depende de XPaths** de um site com `<frame>` de 2008 e vai quebrar
-  no primeiro redesenho. Uma vez baixado o corpus, os JSONs de índice bastam.
+  no primeiro redesenho. Isso deixou de ameaçar o corpus — ele está versionado,
+  com o sha256 de origem — mas ameaça sim a busca de um ano novo.
 - **Provas de pós não têm gabarito** publicado, então suas questões ficam sem
   resposta conhecida.
-- **`data/` é gitignored**, incluindo o `.db`. Reproduzir do zero exige rodar o
-  pipeline inteiro.
+- **Os PDFs versionados pesam no clone.** São 108 MB que não deltificam; um
+  `git clone --filter=blob:none` busca os blobs sob demanda.
+- **`data/processed/` e o `.db` são gitignored** — 400 MB de derivados que
+  `task transform && task load` refazem. O que não é regenerável está no git.
