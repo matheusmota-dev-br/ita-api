@@ -116,6 +116,36 @@ class AutofillOut(BaseModel):
   complete: bool
 
 
+class AttachFigureRequest(BaseModel):
+  """Figura a anexar a uma questão, recortada de qualquer página do documento.
+
+  Nas provas de pós a imagem costuma ficar solta numa página adiante da questão,
+  então `page_no` não é restrito ao intervalo da questão de propósito.
+  """
+
+  bbox: BBoxIn
+
+
+class FigureOut(BaseModel):
+  asset_id: int
+  page_no: int
+  bbox: list[float] | None = None
+  image_url: str
+
+
+class LooseRegionOut(BaseModel):
+  """Região fora de qualquer questão, já exportada pelo transform.
+
+  São as instruções, os textos-base e — o que interessa aqui — as figuras que
+  ficaram soltas. Listá-las evita recortar à mão o que o pipeline já achou.
+  """
+
+  name: str
+  page_no: int
+  bbox: list[float]
+  image_url: str
+
+
 class MutationResponse(BaseModel):
   """Resultado de uma operação que muda quais questões existem."""
 

@@ -36,6 +36,49 @@ def manual_image_name(number: int) -> str:
   return f"{MANUAL_SUBDIR}/questao_{number:02d}.png"
 
 
+def figure_image_name(number: int, index: int) -> str:
+  return f"{MANUAL_SUBDIR}/questao_{number:02d}_figura_{index:02d}.png"
+
+
+def figure_relative_path(document: Document, number: int, index: int) -> str:
+  prefix = document.processed_dir or f"processed/{document.exam_id}"
+  return f"{prefix}/{figure_image_name(number, index)}"
+
+
+def build_figure_asset(bbox: dict, crop: Crop, relative_path: str) -> Asset:
+  """Figura anexada a uma questão, impressa longe dela.
+
+  `AssetKind.FIGURE` e **não** um `QuestionPage`: a figura não faz parte do
+  retângulo do enunciado, então não pode alterar `page_start`/`page_end` nem
+  entrar na reextração de texto. É por isso que anexar uma figura da página 9 a
+  uma questão da página 3 não corrompe nada.
+  """
+  return Asset(
+    kind=AssetKind.FIGURE,
+    relative_path=relative_path,
+    page_no=bbox["page_no"],
+    bbox=[bbox["x0"], bbox["y0"], bbox["x1"], bbox["y1"]],
+    dpi=CROP_DPI,
+    width_px=crop.width_px,
+    height_px=crop.height_px,
+    sha256=crop.sha256,
+    byte_size=crop.byte_size,
+  )
+
+
+def render_figure_crop(
+  pdf_path: Path, document: Document, number: int, index: int, bbox: dict
+) -> tuple[Crop, str]:
+  crop = render_crop(
+    pdf_path,
+    bbox["page_no"],
+    (bbox["x0"], bbox["y0"], bbox["x1"], bbox["y1"]),
+  )
+  relative = figure_relative_path(document, number, index)
+  write_crop(crop, settings.media_root / relative)
+  return crop, relative
+
+
 def manual_relative_path(document: Document, number: int) -> str:
   prefix = document.processed_dir or f"processed/{document.exam_id}"
   return f"{prefix}/{manual_image_name(number)}"

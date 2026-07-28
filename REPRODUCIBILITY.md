@@ -174,6 +174,7 @@ campo:
 | `needs_llm` | Override da triagem: força ou dispensa o enrich naquela questão. |
 | `statement_markdown` / `alternatives` | Texto corrigido à mão, reaplicado como `human_verified`. |
 | `bbox` | Recorte corrigido. O PNG é regerado no momento da correção; o reload realinha as linhas do banco. |
+| `figures` | Figuras impressas longe do enunciado, associadas à mão. A lista é substituída, não mesclada, senão uma figura removida voltaria. Os PNGs são regerados dos retângulos no reload. |
 
 **`operations`** — decisões que mudam *quais* questões existem. É uma lista
 ordenada, não um mapa, porque o resultado depende da ordem: renumerar 5→6 e

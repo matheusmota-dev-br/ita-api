@@ -175,6 +175,7 @@ Sete tipos de intervenção, todos persistidos:
 | **Criar questão** | Marque a região e crie. Serve para o que a detecção não pegou; nasce `human_verified`. |
 | **Excluir questão** | Remove o que a detecção inventou. |
 | **Renumerar** | Muda o número; se o destino existir, as duas trocam. |
+| **Anexar figura** | Associa à questão uma imagem impressa longe do enunciado. |
 
 **Auto-preencher.** O botão *Preencher do texto bruto* separa enunciado e
 alternativas sem chamar LLM — os marcadores foram medidos no corpus (`A ( )`
@@ -182,6 +183,17 @@ cobre 54%, e as alternativas curtas vêm todas numa linha só). Fecha as cinco e
 58% das questões com texto. É uma sugestão: só preenche campo vazio, e uma
 questão discursiva com itens a)–e) é indistinguível de uma objetiva pelo texto,
 então confira contra o recorte ao lado antes de salvar.
+
+**Figuras soltas.** Nas provas de pós a figura costuma ficar numa página adiante
+do enunciado. O card *Figuras da questão* lista as regiões que ficaram fora de
+qualquer questão — com preview, calculadas ao vivo a partir dos retângulos das
+questões — e um clique anexa a escolhida. Também dá para marcar a região à mão em
+qualquer página e usar *＋ Anexar figura*.
+
+A figura entra como `AssetKind.FIGURE`, **não** como parte da questão: o
+retângulo do enunciado e as páginas dele não se movem, então anexar uma imagem da
+página 9 a uma questão da página 3 não corrompe nada. A associação é registrada e
+reaplicada no `--rebuild`.
 
 **Equações.** O enunciado aceita `$x^2$` inline e `$$...$$` em bloco, com
 preview ao vivo ao lado e uma barra de atalhos para os símbolos que aparecem nas

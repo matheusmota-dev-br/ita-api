@@ -250,7 +250,7 @@ const normalize = (r) => ({
   x1: Math.max(r.x0, r.x1), y1: Math.max(r.y0, r.y1),
 });
 
-function PageView({ doc, question, questions, onCrop, onCreate, busy, imgKey }) {
+function PageView({ doc, question, questions, onCrop, onCreate, onAttachFigure, busy, imgKey }) {
   const [page, setPage] = useState(() => firstPage(question));
   const [sel, setSel] = useState(null);
   const [creating, setCreating] = useState(null);
@@ -420,6 +420,10 @@ function PageView({ doc, question, questions, onCrop, onCreate, busy, imgKey }) 
               html`<button class="ok" disabled=${busy} onClick=${() => { onCrop(bbox()); setSel(null); }}>
                 ✓ Recorte da questão ${question.number}
               </button>`}
+              ${question &&
+              html`<button disabled=${busy} onClick=${() => { onAttachFigure(bbox()); setSel(null); }}>
+                ＋ Anexar figura
+              </button>`}
               <button disabled=${busy} onClick=${() => setCreating(String(nextNumber()))}>
                 ＋ Criar questão
               </button>
@@ -473,6 +477,76 @@ function EquationBar({ target }) {
         ${s.label}
       </button>`
     )}
+  </div>`;
+}
+
+/** Figuras anexadas + o catálogo das regiões soltas do documento. */
+function Figures({ doc, question, onDetach, onAttachRegion, busy, imgKey }) {
+  const [loose, setLoose] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || loose !== null || !doc) return;
+    api(`/api/v1/documents/${doc.id}/figuras`).then(setLoose).catch(() => setLoose([]));
+  }, [open, doc && doc.id]);
+
+  const figures = question.figures || [];
+
+  return html`<div class="card">
+    <h3>
+      Figuras da questão
+      <span class="kbd" style=${{ textTransform: "none", marginLeft: "8px" }}>
+        para a figura impressa longe do enunciado
+      </span>
+    </h3>
+
+    ${figures.length
+      ? html`<div class="figrow">
+          ${figures.map(
+            (f) => html`<div class="fig" key=${f.asset_id}>
+              <img src=${`${f.image_url}?v=${imgKey}`} alt=${"figura " + f.asset_id} />
+              <div class="figbar">
+                <span class="kbd">página ${f.page_no + 1}</span>
+                <span class="grow"></span>
+                <button class="mini bad" disabled=${busy}
+                  onClick=${() => onDetach(f.asset_id)}>remover</button>
+              </div>
+            </div>`
+          )}
+        </div>`
+      : html`<div class="sub">
+          Nenhuma figura anexada. Marque a região na página abaixo e use
+          <b>＋ Anexar figura</b>, ou escolha uma das regiões que o pipeline já
+          recortou.
+        </div>`}
+
+    <div class="tabs" style=${{ marginTop: "10px", marginBottom: 0 }}>
+      <button class="mini" onClick=${() => setOpen(!open)}>
+        ${open ? "ocultar" : "ver"} regiões soltas do documento
+      </button>
+      ${open && loose && html`<span class="kbd">${loose.length} recortadas fora de questões</span>`}
+    </div>
+
+    ${open &&
+    (loose === null
+      ? html`<div class="empty">carregando…</div>`
+      : loose.length
+        ? html`<div class="figrow loose">
+            ${loose.map(
+              (r) => html`<div class="fig" key=${r.name}>
+                <img src=${r.image_url} alt=${r.name} loading="lazy" />
+                <div class="figbar">
+                  <span class="kbd">${r.name}</span>
+                  <span class="grow"></span>
+                  <button class="mini" disabled=${busy}
+                    onClick=${() => onAttachRegion(r)}>anexar</button>
+                </div>
+              </div>`
+            )}
+          </div>`
+        : html`<div class="sub">
+            O transform não recortou nenhuma região fora de questão neste documento.
+          </div>`)}
   </div>`;
 }
 
@@ -633,14 +707,15 @@ function Workspace({ question, onSave, busy, imgKey }) {
 
 // ---------------------------------------------------------------- detalhe
 
-function Detail({ doc, question, questions, onReview, onCrop, onSave, onCreate, onDelete, onRenumber, busy, imgKey }) {
+function Detail({ doc, question, questions, onReview, onCrop, onSave, onCreate, onDelete, onRenumber, onAttachFigure, onDetachFigure, busy, imgKey }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [renumber, setRenumber] = useState("");
   useEffect(() => { setConfirmDelete(false); setRenumber(""); }, [question && question.id]);
 
   const page = html`<${PageView}
     doc=${doc} question=${question} questions=${questions}
-    onCrop=${onCrop} onCreate=${onCreate} busy=${busy} imgKey=${imgKey} />`;
+    onCrop=${onCrop} onCreate=${onCreate} onAttachFigure=${onAttachFigure}
+    busy=${busy} imgKey=${imgKey} />`;
 
   if (!question)
     return html`<main>
@@ -669,6 +744,16 @@ function Detail({ doc, question, questions, onReview, onCrop, onSave, onCreate, 
     </div>
 
     <${Workspace} question=${question} onSave=${onSave} busy=${busy} imgKey=${imgKey} />
+    <${Figures}
+      doc=${doc}
+      question=${question}
+      onDetach=${onDetachFigure}
+      onAttachRegion=${(r) => onAttachFigure({
+        page_no: r.page_no, part_index: 0,
+        x0: r.bbox[0], y0: r.bbox[1], x1: r.bbox[2], y1: r.bbox[3],
+      })}
+      busy=${busy}
+      imgKey=${imgKey} />
     ${page}
 
     <div class="card">
@@ -901,6 +986,43 @@ function App() {
     }
   }, [docId, loadQuestions, reloadDocs]);
 
+  const attachFigure = useCallback(
+    async (bbox) => {
+      const q = detailRef.current;
+      if (!q) return;
+      setBusy(true);
+      try {
+        await send(`/api/v1/questions/${q.id}/figuras`, "POST", { bbox });
+        const fresh = await api(`/api/v1/questions/${q.id}?t=${Date.now()}`);
+        setQuestions((prev) => prev.map((x) => (x.id === q.id ? fresh : x)));
+        setImgKey((k) => k + 1);
+        flash("figura anexada");
+      } catch (err) {
+        flash(`falhou: ${err.message}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    []
+  );
+
+  const detachFigure = useCallback(async (assetId) => {
+    const q = detailRef.current;
+    if (!q) return;
+    setBusy(true);
+    try {
+      await send(`/api/v1/questions/${q.id}/figuras/${assetId}`, "DELETE");
+      const fresh = await api(`/api/v1/questions/${q.id}?t=${Date.now()}`);
+      setQuestions((prev) => prev.map((x) => (x.id === q.id ? fresh : x)));
+      setImgKey((k) => k + 1);
+      flash("figura removida");
+    } catch (err) {
+      flash(`falhou: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const renumber = useCallback(
     async (number) => {
       const q = detailRef.current;
@@ -988,6 +1110,8 @@ function App() {
               onCreate=${create}
               onDelete=${remove}
               onRenumber=${renumber}
+              onAttachFigure=${attachFigure}
+              onDetachFigure=${detachFigure}
               busy=${busy}
               imgKey=${imgKey} />`}
       </div>

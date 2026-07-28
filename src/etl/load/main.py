@@ -18,7 +18,12 @@ from src.etl.load.decisions import (
   load_decisions,
   load_operations,
 )
-from src.etl.load.manual import build_manual_question, render_manual_crop
+from src.etl.load.manual import (
+  build_figure_asset,
+  build_manual_question,
+  render_figure_crop,
+  render_manual_crop,
+)
 from src.etl.load.reader import LoadedDocument, iter_processed
 from src.etl.load.upserts import (
   ensure_alternatives,
@@ -33,7 +38,7 @@ from src.etl.transform.crop import CropError
 from src.etl.transform.paths import ENRICHED_SUBDIR
 from src.etl.transform.split import split_statement
 from src.models import Document, Question, Topic
-from src.models.enums import DisciplineSource, ReviewStatus
+from src.models.enums import AssetKind, DisciplineSource, ReviewStatus
 
 # Prefixo dos caminhos de imagem gravados em `assets`, relativo a MEDIA_ROOT.
 MEDIA_PREFIX_ROOT = "processed"
@@ -56,6 +61,7 @@ class LoadStats:
   questions_created: int = 0
   questions_deleted: int = 0
   questions_renumbered: int = 0
+  figures_attached: int = 0
   failed_operations: list[str] = field(default_factory=list)
   answer_key_conflicts: list[str] = field(default_factory=list)
   skipped: list[str] = field(default_factory=list)
@@ -413,6 +419,47 @@ def _replay_one(
   stats.questions_renumbered += 1
 
 
+def _apply_decision_figures(
+  session: Session, question: Question, figures: list[dict], stats: LoadStats
+) -> None:
+  """Reanexa as figuras que o revisor associou à questão.
+
+  Nas provas de pós a imagem fica solta numa página adiante do enunciado, e
+  associá-la é decisão humana — não há como derivá-la do PDF. Os PNGs são
+  regerados a partir dos retângulos registrados, pelo mesmo motivo das questões
+  criadas à mão: o retângulo é a fonte da verdade, o arquivo é derivado.
+
+  Substitui as figuras existentes em vez de acrescentar, senão um segundo
+  `--rebuild` duplicaria cada uma.
+  """
+  if not figures:
+    return
+
+  pdf_path = Path(question.document.local_path)
+  if not pdf_path.is_absolute():
+    pdf_path = PROJECT_ROOT / pdf_path
+
+  for asset in [a for a in question.assets if a.kind is AssetKind.FIGURE]:
+    question.assets.remove(asset)
+  # Flush entre remover e reinserir: os caminhos são os mesmos e
+  # `UNIQUE(relative_path)` recusaria o estado em que as linhas antigas ainda
+  # existem. Mesmo motivo do desvio na troca de numeração.
+  session.flush()
+
+  for index, bbox in enumerate(figures, start=1):
+    try:
+      crop, relative = render_figure_crop(
+        pdf_path, question.document, question.number, index, bbox
+      )
+    except (CropError, OSError) as exc:
+      stats.failed_operations.append(
+        f"figura {question.document.local_path}#{question.number}[{index}]: {exc}"
+      )
+      continue
+    question.assets.append(build_figure_asset(bbox, crop, relative))
+    stats.figures_attached += 1
+
+
 def _apply_review_decisions(session: Session, stats: LoadStats) -> None:
   """Reaplica a revisão humana registrada em data/review/decisions.json.
 
@@ -455,6 +502,7 @@ def _apply_review_decisions(session: Session, stats: LoadStats) -> None:
           alternative.text_markdown = text or None
           alternative.review_status = ReviewStatus.HUMAN_VERIFIED
     _apply_decision_bbox(question, decision.get("bbox"))
+    _apply_decision_figures(session, question, decision.get("figures") or [], stats)
     stats.decisions_applied += 1
   session.flush()
 
@@ -558,6 +606,8 @@ def main() -> int:
     stats.questions_deleted,
     stats.questions_renumbered,
   )
+  if stats.figures_attached:
+    print(f"figuras reanexadas: {stats.figures_attached}")
   if any(structural):
     print(
       "operacoes manuais reaplicadas: "

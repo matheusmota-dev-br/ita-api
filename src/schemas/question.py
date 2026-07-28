@@ -82,6 +82,9 @@ class QuestionDetail(QuestionSummary):
   discipline_confidence: float | None = None
   alternatives: list[AlternativeOut] = []
   pages: list[QuestionPageOut] = []
+  # Figuras anexadas à mão, impressas longe do enunciado. Separadas de `pages`
+  # de propósito: não fazem parte do retângulo da questão.
+  figures: list["FigureRefOut"] = []
   source: SourceOut | None = None
 
 
@@ -104,3 +107,11 @@ class StatsOut(BaseModel):
   by_discipline: list[DisciplineCount]
   by_year: list[YearCount]
   by_review_status: dict[str, int]
+
+
+class FigureRefOut(BaseModel):
+  """Figura anexada, com a página de onde veio."""
+
+  asset_id: int
+  page_no: int
+  image_url: str

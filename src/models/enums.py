@@ -50,6 +50,11 @@ class AssetKind(str, Enum):
   QUESTION_CROP = "question_crop"
   SUPPORT_CROP = "support_crop"
   REGION = "region"
+  # Figura que pertence a uma questão mas está impressa longe dela — comum nas
+  # provas de pós, onde a imagem fica solta numa página adiante. Distinta de
+  # QUESTION_CROP porque não é o recorte do enunciado: não entra em
+  # `question_pages` e não altera `page_start`/`page_end`.
+  FIGURE = "figure"
 
 
 class RunStatus(str, Enum):

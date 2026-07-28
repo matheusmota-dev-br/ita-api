@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,20 +16,28 @@ from src.etl.load.decisions import (
   record_operation,
 )
 from src.etl.load.manual import (
+  build_figure_asset,
   build_manual_question,
+  figure_relative_path,
   manual_relative_path,
+  render_figure_crop,
   render_manual_crop,
 )
 from src.etl.transform.crop import Crop, CropError, render_crop, write_crop
+from src.etl.transform.intervals import non_question_intervals_on_page
 from src.etl.transform.split import split_statement
-from src.models import Document, Question
-from src.models.enums import ReviewStatus
+from src.models import Asset, Document, Question
+from src.models.enums import AssetKind, ReviewStatus
+from src.models.question import QuestionPage
 from src.repositories.documents import get_document
 from src.repositories.questions import get_question
 from src.schemas.document import (
+  AttachFigureRequest,
   AutofillOut,
   BBoxIn,
   CreateQuestionRequest,
+  FigureOut,
+  LooseRegionOut,
   MutationResponse,
   RenumberRequest,
   ReviewRequest,
@@ -39,6 +47,10 @@ from src.schemas.document import (
 router = APIRouter(tags=["review"])
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+# Uma faixa muito fina entre duas questões é o espaço em branco da diagramação,
+# não uma figura. O mesmo piso que o transform usa ao exportar.
+MIN_REGION_HEIGHT = 40.0
 
 
 @router.get("/review", include_in_schema=False)
@@ -263,6 +275,222 @@ async def create_question_endpoint(
     operation=OP_CREATE,
     persisted_to=str(path),
   )
+
+
+@router.get(
+  "/api/v1/documents/{document_id}/figuras", response_model=list[LooseRegionOut]
+)
+async def loose_regions_endpoint(
+  document_id: int,
+  session: Annotated[AsyncSession, Depends(get_db)],
+) -> list[LooseRegionOut]:
+  """Regiões do documento que não pertencem a nenhuma questão.
+
+  São instruções, textos-base e — o que interessa aqui — as figuras que ficaram
+  soltas. Nas provas de pós a imagem costuma estar numa página adiante do
+  enunciado, e achar isso à mão numa prova de 20 páginas é o trabalho chato.
+
+  Calculadas ao vivo a partir de `question_pages`, com a mesma função que o
+  transform usa. Poderia listar os PNGs que o transform já exportou em
+  `fora_questoes/`, mas o nome do arquivo não carrega o retângulo — e sem o
+  retângulo não há como anexar a região, só a página inteira. Calcular devolve
+  o bbox exato e funciona mesmo que o export não tenha rodado.
+  """
+  import pymupdf
+
+  document = await get_document(session, document_id)
+  if document is None:
+    raise HTTPException(404, "documento nao encontrado")
+
+  rows = list(
+    await session.execute(
+      select(QuestionPage, Question.number)
+      .join(Question, Question.id == QuestionPage.question_id)
+      .where(Question.document_id == document_id)
+    )
+  )
+  # O formato que `non_question_intervals_on_page` espera: por questão, a lista
+  # de (página, retângulo).
+  question_rects: dict[int, list[tuple[int, pymupdf.Rect]]] = {}
+  for page_row, number in rows:
+    question_rects.setdefault(number, []).append(
+      (
+        page_row.page_no,
+        pymupdf.Rect(page_row.x0, page_row.y0, page_row.x1, page_row.y1),
+      )
+    )
+
+  pdf_path = _pdf_path(document)
+  out: list[LooseRegionOut] = []
+  pdf = pymupdf.open(pdf_path)
+  try:
+    for page_no in range(len(pdf)):
+      page_rect = pdf[page_no].rect
+      for index, (y0, y1) in enumerate(
+        non_question_intervals_on_page(question_rects, page_no, page_rect)
+      ):
+        if y1 - y0 < MIN_REGION_HEIGHT:
+          continue
+        bbox = [page_rect.x0, y0, page_rect.x1, y1]
+        out.append(
+          LooseRegionOut(
+            name=f"pagina {page_no + 1} · região {index + 1}",
+            page_no=page_no,
+            bbox=bbox,
+            image_url=(
+              f"/api/v1/documents/{document_id}/regiao"
+              f"?page_no={page_no}&x0={bbox[0]}&y0={y0}&x1={bbox[2]}&y1={y1}"
+            ),
+          )
+        )
+  finally:
+    pdf.close()
+  return out
+
+
+@router.get("/api/v1/documents/{document_id}/regiao")
+async def region_image_endpoint(
+  document_id: int,
+  session: Annotated[AsyncSession, Depends(get_db)],
+  page_no: int = 0,
+  x0: float = 0,
+  y0: float = 0,
+  x1: float = 0,
+  y1: float = 0,
+) -> Response:
+  """Renderiza um retângulo qualquer do documento, para pré-visualizar a região."""
+  document = await get_document(session, document_id)
+  if document is None:
+    raise HTTPException(404, "documento nao encontrado")
+  try:
+    crop = render_crop(_pdf_path(document), page_no, (x0, y0, x1, y1))
+  except CropError as exc:
+    raise HTTPException(422, str(exc)) from exc
+  return Response(
+    content=crop.png,
+    media_type="image/png",
+    headers={
+      "ETag": f'"{crop.sha256}"',
+      "Cache-Control": "private, max-age=3600",
+    },
+  )
+
+
+@router.post(
+  "/api/v1/questions/{question_id}/figuras",
+  response_model=FigureOut,
+  status_code=201,
+)
+async def attach_figure_endpoint(
+  question_id: int,
+  body: AttachFigureRequest,
+  session: Annotated[AsyncSession, Depends(get_db)],
+) -> FigureOut:
+  """Anexa à questão uma figura recortada de qualquer página do documento.
+
+  Entra como `AssetKind.FIGURE`, **não** como uma parte da questão: o retângulo
+  do enunciado continua o que era, e `page_start`/`page_end` não se movem. É o
+  que permite anexar uma figura da página 9 a uma questão da página 3 sem
+  corromper o recorte nem o texto.
+  """
+  question = await get_question(session, question_id)
+  if question is None:
+    raise HTTPException(404, "questao nao encontrada")
+
+  bbox = body.bbox.model_dump()
+  existing = [a for a in question.assets if a.kind is AssetKind.FIGURE]
+  index = len(existing) + 1
+
+  _safe_target(figure_relative_path(question.document, question.number, index))
+  try:
+    crop, relative = render_figure_crop(
+      _pdf_path(question.document), question.document, question.number, index, bbox
+    )
+  except CropError as exc:
+    raise HTTPException(422, str(exc)) from exc
+
+  asset = build_figure_asset(bbox, crop, relative)
+  question.assets.append(asset)
+  await session.flush()
+
+  record_decision(
+    local_path=question.document.local_path,
+    number=question.number,
+    figures=[bbox],
+  )
+  return FigureOut(
+    asset_id=asset.id,
+    page_no=asset.page_no,
+    bbox=asset.bbox,
+    image_url=f"/api/v1/questions/{question_id}/figuras/{asset.id}",
+  )
+
+
+@router.get(
+  "/api/v1/questions/{question_id}/figuras/{asset_id}", response_class=FileResponse
+)
+async def figure_image_endpoint(
+  question_id: int,
+  asset_id: int,
+  session: Annotated[AsyncSession, Depends(get_db)],
+) -> FileResponse:
+  question = await get_question(session, question_id)
+  if question is None:
+    raise HTTPException(404, "questao nao encontrada")
+  asset = next((a for a in question.assets if a.id == asset_id), None)
+  if asset is None:
+    raise HTTPException(404, "figura nao encontrada")
+
+  target = _safe_target(asset.relative_path)
+  if not target.is_file():
+    raise HTTPException(404, "imagem indisponivel")
+  return FileResponse(
+    target, media_type="image/png", headers={"ETag": f'"{asset.sha256}"'}
+  )
+
+
+@router.delete("/api/v1/questions/{question_id}/figuras/{asset_id}", status_code=204)
+async def detach_figure_endpoint(
+  question_id: int,
+  asset_id: int,
+  session: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+  """Desanexa uma figura. O PNG fica em disco — apagar arquivo é irreversível."""
+  question = await get_question(session, question_id)
+  if question is None:
+    raise HTTPException(404, "questao nao encontrada")
+  asset = next(
+    (a for a in question.assets if a.id == asset_id and a.kind is AssetKind.FIGURE),
+    None,
+  )
+  if asset is None:
+    raise HTTPException(404, "figura nao encontrada")
+
+  question.assets.remove(asset)
+  await session.flush()
+
+  # A lista inteira é regravada, não mesclada: `record_decision` mescla campo a
+  # campo, e sem substituir a lista a figura removida voltaria no `--rebuild`.
+  record_decision(
+    local_path=question.document.local_path,
+    number=question.number,
+    figures=[_figure_bbox(a) for a in question.assets if a.kind is AssetKind.FIGURE],
+    replace_figures=True,
+  )
+  return Response(status_code=204)
+
+
+def _figure_bbox(asset: Asset) -> dict:
+  """Bbox de um asset (quatro floats) no formato que a decisão registra."""
+  x0, y0, x1, y1 = asset.bbox or (0.0, 0.0, 0.0, 0.0)
+  return {
+    "page_no": asset.page_no,
+    "part_index": 0,
+    "x0": x0,
+    "y0": y0,
+    "x1": x1,
+    "y1": y1,
+  }
 
 
 @router.delete("/api/v1/questions/{question_id}", response_model=MutationResponse)

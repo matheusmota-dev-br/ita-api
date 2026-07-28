@@ -108,6 +108,8 @@ def record_decision(
   statement_markdown: str | None = None,
   alternatives: dict[str, str] | None = None,
   bbox: dict | None = None,
+  figures: list[dict] | None = None,
+  replace_figures: bool = False,
   path: Path | None = None,
 ) -> Path:
   """Grava ou atualiza uma decisão, preservando os campos não informados.
@@ -134,6 +136,13 @@ def record_decision(
     entry["alternatives"] = {**entry.get("alternatives", {}), **alternatives}
   if bbox is not None:
     entry["bbox"] = bbox
+  if figures is not None:
+    # Anexar acrescenta; desanexar substitui a lista inteira. Sem o modo de
+    # substituição, a figura removida voltaria no próximo `--rebuild`, porque
+    # todo o resto deste registro é mesclado.
+    entry["figures"] = (
+      figures if replace_figures else [*entry.get("figures", []), *figures]
+    )
   entry["reviewed_at"] = _now()
 
   decisions[key] = entry
@@ -153,6 +162,7 @@ def record_decision(
           "statement_markdown": statement_markdown,
           "alternatives": alternatives,
           "bbox": bbox,
+          "figures": figures,
         }.items()
         if value is not None
       },

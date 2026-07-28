@@ -8,7 +8,7 @@ from src.config import settings
 from src.constants import Discipline, FormatType, TestType
 from src.database import get_db
 from src.models import Question
-from src.models.enums import Phase, ReviewStatus
+from src.models.enums import AssetKind, Phase, ReviewStatus
 from src.repositories.questions import (
   QuestionFilters,
   get_question,
@@ -19,6 +19,7 @@ from src.schemas.common import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, Page
 from src.schemas.question import (
   PREVIEW_LENGTH,
   AlternativeOut,
+  FigureRefOut,
   QuestionDetail,
   QuestionPageOut,
   QuestionSummary,
@@ -135,6 +136,15 @@ def _to_detail(question: Question) -> QuestionDetail:
         image_url=_image_url(question, p.part_index),
       )
       for p in question.pages
+    ],
+    figures=[
+      FigureRefOut(
+        asset_id=a.id,
+        page_no=a.page_no or 0,
+        image_url=f"/api/v1/questions/{question.id}/figuras/{a.id}",
+      )
+      for a in sorted(question.assets, key=lambda a: a.id)
+      if a.kind is AssetKind.FIGURE
     ],
     source=SourceOut(
       document_id=question.document.id,
