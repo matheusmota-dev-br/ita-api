@@ -28,6 +28,7 @@
     "2026": 145
   },
   "counts": {
+    "alternatives_with_text": 9024,
     "answer_key_entries": 1619,
     "documents": 158,
     "exams": 57,
@@ -40,9 +41,9 @@
   },
   "environment": {
     "git": {
-      "dirty": true,
-      "dirty_files": 76,
-      "sha": "7361715266a56e92a208cc7d68e3bf8783201340"
+      "dirty": false,
+      "dirty_files": 0,
+      "sha": "abd3837454e9e0bde8480eed3b7d1d5e9b177c38"
     },
     "platform": "macOS-26.5.1-arm64-arm-64bit",
     "prompt_version": "1",
@@ -224,5 +225,5 @@
     },
     "transform_version": "0.1.0"
   },
-  "fingerprint": "c23b7220c11d7dc7"
+  "fingerprint": "a688da4bb56f1c88"
 }
