@@ -28,7 +28,7 @@
     "2026": 145
   },
   "counts": {
-    "alternatives_with_text": 9024,
+    "alternatives_with_text": 9252,
     "answer_key_entries": 1619,
     "documents": 158,
     "exams": 57,
@@ -43,10 +43,10 @@
     "git": {
       "dirty": false,
       "dirty_files": 0,
-      "sha": "abd3837454e9e0bde8480eed3b7d1d5e9b177c38"
+      "sha": "22eaf23c9ea413d9bf766eec34b08b6e29493ab8"
     },
     "platform": "macOS-26.5.1-arm64-arm-64bit",
-    "prompt_version": "1",
+    "prompt_version": "2",
     "pymupdf": {
       "available": true,
       "mupdf": "1.29.0",
@@ -225,5 +225,5 @@
     },
     "transform_version": "0.1.0"
   },
-  "fingerprint": "a688da4bb56f1c88"
+  "fingerprint": "8099a64d1e9ebb53"
 }
