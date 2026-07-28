@@ -312,12 +312,28 @@ nas cores amostradas do próprio arquivo.
 
 A classificação é por **matiz**, não por luminância: azul (~99) e vermelho (~72)
 têm luminância parecida, então um limiar de brilho funde escudo e tocha na mesma
-mancha — foi a primeira versão, e ela perdia o desenho. O contorno preto só
-vence quando a célula não tem nenhuma das três cores, senão o traço escuro come
-as áreas de cor nessa resolução. Os dois temas têm pigmento próprio: `#ffcb05`
-sobre branco dá 1,47:1 e as asas somem, então em light o ouro desce para
-`#c08a00`; em dark é o azul que sobe, porque `#0066b3` contra `#1a1a19` fica em
-2,98:1 e o escudo apagava.
+mancha — foi a primeira versão, e ela perdia o desenho. Os dois temas têm
+pigmento próprio: `#ffcb05` sobre branco dá 1,47:1 e as asas somem, então em
+light o ouro desce para `#c08a00`; em dark é o azul que sobe, porque `#0066b3`
+contra `#1a1a19` fica em 2,98:1 e o escudo apagava.
+
+Reduzir um vetorial a 64 células produz farpa — ponta de pena de uma célula,
+dente de engrenagem picado, cisco do traço preto — e nessa escala isso não lê
+como detalhe, lê como sujeira. Então o mosaico passa por uma **limpeza
+morfológica**, e é ela que dá a nitidez:
+
+| Passo | O que faz |
+|---|---|
+| Contorno herda a vizinhança | O traço preto existe no original para separar áreas de cor; aqui a própria grade separa. Só sobrevive num desenho que seja apenas traço. |
+| Moda 3×3 na cor | Tira a cor perdida dentro de uma área, sem acender nem apagar nada. Uma passada só: duas derretem os vãos entre as letras. |
+| Órfã sai | Célula acesa com poucas vizinhas acesas vira fundo. Uma passada, não em cascata — se cascateasse, apagar uma ponta afinaria a vizinha e a asa iria embora inteira. |
+| Furo de alfinete fecha | Só a célula **totalmente** cercada. O limiar é 8 e não 7 porque um vão de duas células tem 7 vizinhas acesas cada, e a 7 as letras viram bloco azul. |
+| Topo da asa achata | Nada de ouro acima da primeira linha longa de ouro: as voltinhas de uma célula liam como pixel solto sobre uma reta. A tocha não entra na conta — o fogo é a única coisa que sobe. |
+
+Sobram 623 quadrados de 64×24 células, recortados para 62×22.
+`task banner -- --preview-emblema` imprime a grade em texto, que é como os
+tamanhos e limiares foram comparados. `emblema_grade(limpar=False)` devolve o
+cru, para conferir a diferença.
 
 Os dois temas existem porque o `<picture>` do GitHub troca de arquivo conforme o
 tema do leitor; o escuro não é o claro invertido — cada um tem seus próprios

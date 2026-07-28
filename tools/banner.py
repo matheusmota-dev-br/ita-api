@@ -27,6 +27,7 @@ import struct
 import sys
 import unicodedata
 import zlib
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -305,13 +306,129 @@ def _classe_de_cor(r: int, g: int, b: int) -> int:
   return CONTORNO  # preto do traco e o antialias entre as areas
 
 
-def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[int]]:
+def _vizinhos(grade: list[list[int]], r: int, c: int):
+  for dr in (-1, 0, 1):
+    for dc in (-1, 0, 1):
+      if dr or dc:
+        rr, cc = r + dr, c + dc
+        if 0 <= rr < len(grade) and 0 <= cc < len(grade[0]):
+          yield grade[rr][cc]
+
+
+def _sem_contorno(grade: list[list[int]]) -> list[list[int]]:
+  """Reatribui cada celula de contorno a cor que domina a vizinhanca.
+
+  O traco preto do desenho, reduzido a esta grade, viraria cisco cinza espalhado
+  pelas bordas. Ele existe no original para separar areas de cor; aqui a propria
+  grade ja separa. Celula sem nenhum vizinho colorido continua contorno — e o
+  caso de um desenho que seja so traco.
+  """
+  saida = [linha[:] for linha in grade]
+  for r, linha in enumerate(grade):
+    for c, valor in enumerate(linha):
+      if valor != CONTORNO:
+        continue
+      perto = Counter(v for v in _vizinhos(grade, r, c) if v and v != CONTORNO)
+      saida[r][c] = perto.most_common(1)[0][0] if perto else CONTORNO
+  return saida
+
+
+def _suaviza_cor(grade: list[list[int]]) -> list[list[int]]:
+  """Moda 3x3 na cor, sem acender nem apagar nada.
+
+  Tira o pixel de cor perdido dentro de uma area — o vermelho que sobra da chama
+  no meio do escudo. Uma passada so: duas derretem os vaos entre as letras.
+  """
+  saida = [linha[:] for linha in grade]
+  for r, linha in enumerate(grade):
+    for c, valor in enumerate(linha):
+      if not valor:
+        continue
+      perto = Counter([valor] + [v for v in _vizinhos(grade, r, c) if v])
+      saida[r][c] = perto.most_common(1)[0][0]
+  return saida
+
+
+def _tira_orfas(grade: list[list[int]], minimo: int = 3) -> list[list[int]]:
+  """Apaga celula acesa com menos de `minimo` vizinhos acesos.
+
+  E o que come as farpas de uma celula nas pontas das asas e nos dentes da
+  engrenagem: detalhe que nesta escala nao le como detalhe, le como sujeira.
+  """
+  saida = [linha[:] for linha in grade]
+  for r, linha in enumerate(grade):
+    for c, valor in enumerate(linha):
+      if valor and sum(1 for v in _vizinhos(grade, r, c) if v) < minimo:
+        saida[r][c] = 0
+  return saida
+
+
+def _fecha_furos(grade: list[list[int]], minimo: int = 8) -> list[list[int]]:
+  """Acende celula apagada cercada por `minimo`+ acesas, com a cor da maioria.
+
+  Só furo de alfinete, e por isso 8: uma celula totalmente cercada. Um vao de
+  duas celulas — o que separa duas letras — tem 7 vizinhas acesas cada, entao
+  qualquer limiar menor fecha o vao e o escudo vira um bloco azul.
+  """
+  saida = [linha[:] for linha in grade]
+  for r, linha in enumerate(grade):
+    for c, valor in enumerate(linha):
+      if valor:
+        continue
+      perto = [v for v in _vizinhos(grade, r, c) if v]
+      if len(perto) >= minimo:
+        saida[r][c] = Counter(perto).most_common(1)[0][0]
+  return saida
+
+
+def _achata_topo_da_asa(grade: list[list[int]], fracao: float = 0.5) -> list[list[int]]:
+  """Deixa a asa reta em cima: nada de ouro acima da primeira linha longa dela.
+
+  As voltinhas que sobem junto ao centro do emblema ocupam uma ou duas celulas
+  cada e, nesta escala, leem como pixel solto em cima de uma linha reta. A tocha
+  nao entra na conta — o fogo deve subir, e e a unica coisa que sobe.
+  """
+  cols = len(grade[0])
+  topo = next(
+    (r for r, linha in enumerate(grade) if linha.count(OURO) >= cols * fracao),
+    None,
+  )
+  if topo is None:
+    return grade
+  saida = [linha[:] for linha in grade]
+  for r in range(topo):
+    for c, valor in enumerate(saida[r]):
+      if valor == OURO:
+        saida[r][c] = 0
+  return saida
+
+
+def _recorta(grade: list[list[int]]) -> list[list[int]]:
+  """Tira as linhas e colunas vazias das bordas, que a limpeza pode ter criado."""
+  linhas = [r for r, linha in enumerate(grade) if any(linha)]
+  colunas = [c for c in range(len(grade[0])) if any(linha[c] for linha in grade)]
+  if not linhas or not colunas:
+    return grade
+  return [
+    linha[colunas[0] : colunas[-1] + 1] for linha in grade[linhas[0] : linhas[-1] + 1]
+  ]
+
+
+def emblema_grade(
+  caminho: Path = LOGO, cols: int = EMBLEMA_COLS, limpar: bool = True
+) -> list[list[int]]:
   """Reduz o emblema a uma grade de classes de cor, recortada na caixa de tinta.
 
   Cada celula recebe a cor que domina os pixels dela — asas em ouro, escudo e
   letras em azul, tocha em vermelho. O contorno preto so vence quando a celula
   nao tem nenhuma das tres cores, senao o traco escuro do desenho comeria as
   areas de cor inteiras nessa resolucao.
+
+  Depois vem a limpeza. Reduzir um vetorial a 64 celulas produz farpas: pontas de
+  pena de uma celula, dentes de engrenagem picados, cisco do traco preto. Nesta
+  escala isso nao le como detalhe, le como sujeira — a forma fica mais nitida
+  quando o mosaico e simplificado de proposito. `limpar=False` devolve o cru,
+  para comparar.
   """
   larg, alt, px, canais = _le_png(caminho)
   classes = bytearray(larg * alt)
@@ -349,7 +466,19 @@ def emblema_grade(caminho: Path = LOGO, cols: int = EMBLEMA_COLS) -> list[list[i
       quanto, cor = max(coloridos)
       linha.append(cor if quanto else CONTORNO)
     grade.append(linha)
-  return grade
+
+  if not limpar:
+    return grade
+
+  # A ordem importa: o contorno sai antes da moda de cor, senao o cinza entra no
+  # voto; as orfas saem antes de fechar furos, para nao ressuscitar a farpa que
+  # acabou de ser apagada; o topo achata depois, quando so restam as voltinhas de
+  # verdade para apagar; e o aperto final, com criterio mais duro, e o que fecha
+  # os dentes da engrenagem — a parte que mais lia como cisco.
+  grade = _suaviza_cor(_sem_contorno(grade))
+  grade = _fecha_furos(_tira_orfas(grade, 3))
+  grade = _tira_orfas(_achata_topo_da_asa(grade), 4)
+  return _recorta(grade)
 
 
 def emblema(t: dict, grade: list[list[int]]) -> list[str]:
@@ -596,7 +725,7 @@ def main(argv: list[str] | None = None) -> int:
     for linha in grade:
       print("".join(simbolos[v] for v in linha))
     acesos = sum(1 for linha in grade for v in linha if v)
-    print(f"{EMBLEMA_COLS}x{len(grade)} células, {acesos} quadrados")
+    print(f"{len(grade[0])}x{len(grade)} células, {acesos} quadrados")
     return 0
 
   if not args.baseline.exists():

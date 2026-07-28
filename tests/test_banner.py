@@ -245,7 +245,7 @@ def test_emblema_recorta_na_caixa_de_tinta(tmp_path):
       o = (y * larg + x) * 4
       px[o : o + 4] = bytes((0, 0, 0, 255))
   png = escreve_png(tmp_path / "bloco.png", larg, alt, bytes(px), filtro=0)
-  grade = banner.emblema_grade(png, cols=8)
+  grade = banner.emblema_grade(png, cols=8, limpar=False)
   assert len(grade[0]) == 8
   assert len(grade) == 4  # 8 colunas * (4/8) de razão
   assert all(all(linha) for linha in grade)  # tudo aceso: o recorte é só a tinta
@@ -259,7 +259,7 @@ def test_emblema_ignora_o_branco(tmp_path):
     for x in range(larg):
       px += bytes((255, 255, 255, 255) if x >= 2 else (0, 0, 0, 255))
   png = escreve_png(tmp_path / "meio.png", larg, alt, bytes(px), filtro=0)
-  grade = banner.emblema_grade(png, cols=2)
+  grade = banner.emblema_grade(png, cols=2, limpar=False)
   # A prova está na razão: a caixa de tinta é a metade escura (2x4), então com 2
   # colunas saem 4 linhas. Se o branco contasse, a caixa seria 4x4 e daria 2.
   assert (len(grade[0]), len(grade)) == (2, 4)
@@ -301,11 +301,101 @@ def test_celula_recebe_a_cor_que_domina(tmp_path):
       # 3/4 azul, 1/4 vermelho: a célula toda deve sair azul.
       px += bytes((236, 28, 36, 255) if (x, y) == (0, 0) else (0, 102, 179, 255))
   png = escreve_png(tmp_path / "mistura.png", larg, alt, bytes(px), filtro=0)
-  assert banner.emblema_grade(png, cols=1) == [[banner.AZUL]]
+  assert banner.emblema_grade(png, cols=1, limpar=False) == [[banner.AZUL]]
 
   # Só preto: aí sim o contorno.
   preto = escreve_png(tmp_path / "preto.png", 2, 2, bytes((0, 0, 0, 255) * 4), filtro=0)
-  assert banner.emblema_grade(preto, cols=1) == [[banner.CONTORNO]]
+  assert banner.emblema_grade(preto, cols=1, limpar=False) == [[banner.CONTORNO]]
+
+
+# G=ouro, B=azul, R=vermelho, K=contorno. Uma letra cada, para as grades
+# dos testes ficarem legíveis — e nenhuma delas é `O`, que se confunde com 0.
+G, B, R, K = banner.OURO, banner.AZUL, banner.VERMELHO, banner.CONTORNO
+
+
+def test_contorno_assume_a_cor_da_vizinhanca():
+  grade = [
+    [G, G, G],
+    [G, K, G],
+    [G, G, G],
+  ]
+  assert banner._sem_contorno(grade)[1][1] == G
+
+  # Desenho que é só traço continua traço: não há cor para herdar.
+  assert banner._sem_contorno([[K, K], [K, K]]) == [[K, K], [K, K]]
+
+
+def test_suaviza_cor_nao_acende_nem_apaga():
+  grade = [
+    [B, B, B],
+    [B, R, B],  # vermelho perdido no meio do escudo
+    [B, B, B],
+  ]
+  limpo = banner._suaviza_cor(grade)
+  assert limpo[1][1] == B
+  assert [[bool(v) for v in linha] for linha in limpo] == [
+    [bool(v) for v in linha] for linha in grade
+  ]
+
+
+def test_tira_orfas_come_a_farpa_e_poupa_o_bloco():
+  grade = [
+    [G, G, 0, 0],
+    [G, G, 0, G],  # o G solto à direita tem 0 vizinhos acesos
+    [0, 0, 0, 0],
+  ]
+  limpo = banner._tira_orfas(grade, 3)
+  assert limpo[1][3] == 0
+  assert limpo[0][0] == G and limpo[1][1] == G
+
+
+def test_fecha_furo_de_alfinete_mas_nao_o_vao_entre_letras():
+  furo = [
+    [B, B, B],
+    [B, 0, B],  # 8 vizinhos acesos: furo
+    [B, B, B],
+  ]
+  assert banner._fecha_furos(furo)[1][1] == B
+
+  # Vão de duas células: 7 vizinhas acesas cada, uma a menos que o cerco
+  # completo. É o que mantém as letras separadas em vez de virar bloco azul —
+  # e é exatamente por isso que o limiar é 8, e não 7.
+  vao = [
+    [B, B, B, B],
+    [B, 0, 0, B],
+    [B, B, B, B],
+  ]
+  assert banner._fecha_furos(vao) == vao
+  assert banner._fecha_furos(vao, 7) != vao
+
+
+def test_achata_o_topo_da_asa_e_poupa_a_tocha():
+  """Nada de ouro acima da primeira linha longa; o fogo continua subindo."""
+  grade = [
+    [0, 0, R, 0, 0, 0],  # tocha
+    [0, G, R, 0, 0, G],  # voltinhas de ouro que sobem
+    [G, G, G, G, G, G],  # a linha longa: o topo da asa
+    [G, G, G, G, G, G],
+  ]
+  limpo = banner._achata_topo_da_asa(grade, fracao=0.5)
+  assert limpo[1] == [0, 0, R, 0, 0, 0]
+  assert limpo[0] == [0, 0, R, 0, 0, 0]
+  assert limpo[2] == [G] * 6
+
+  # Sem linha longa de ouro não há o que achatar, e nada é apagado.
+  so_tocha = [[0, R, 0], [0, R, 0]]
+  assert banner._achata_topo_da_asa(so_tocha, fracao=0.5) == so_tocha
+
+
+def test_recorta_borda_vazia():
+  grade = [
+    [0, 0, 0, 0],
+    [0, G, G, 0],
+    [0, 0, 0, 0],
+  ]
+  assert banner._recorta(grade) == [[G, G]]
+  # Grade vazia volta como está, em vez de estourar.
+  assert banner._recorta([[0, 0]]) == [[0, 0]]
 
 
 def test_emblema_real_e_deterministico():
@@ -313,13 +403,43 @@ def test_emblema_real_e_deterministico():
   a = banner.emblema_grade()
   b = banner.emblema_grade()
   assert a == b
-  assert len(a[0]) == banner.EMBLEMA_COLS
-  assert len(a) == 24  # 64 colunas na razão 496x188
-  assert sum(1 for linha in a for v in linha if v) == 645
+  assert (len(a[0]), len(a)) == (62, 22)  # 64x24 cru, menos a borda que a limpeza abre
+  assert sum(1 for linha in a for v in linha if v) == 623
   # As três cores do emblema aparecem: se a classificação regredir para
   # luminância, escudo e tocha voltam a virar a mesma mancha.
   presentes = {v for linha in a for v in linha if v}
-  assert {banner.OURO, banner.AZUL, banner.VERMELHO} <= presentes
+  assert presentes == {banner.OURO, banner.AZUL, banner.VERMELHO}
+
+
+def test_limpeza_muda_o_emblema_real_no_sentido_certo():
+  cru = banner.emblema_grade(limpar=False)
+  limpo = banner.emblema_grade()
+  assert (len(cru[0]), len(cru)) == (64, 24)
+
+  # G traço cinza existe no cru e não sobra nenhum no limpo.
+  assert sum(1 for linha in cru for v in linha if v == K) == 11
+  assert not any(v == K for linha in limpo for v in linha)
+
+  # Nada de ouro acima do topo da asa: só a tocha sobe.
+  topo = next(
+    r for r, linha in enumerate(limpo) if linha.count(G) >= len(limpo[0]) * 0.5
+  )
+  acima = [v for linha in limpo[:topo] for v in linha if v]
+  assert acima and set(acima) == {R}
+
+  # E sobrou menos farpa. Não zero: `_tira_orfas` é uma passada só, de propósito
+  # — se cascateasse, apagar uma ponta afinaria a vizinha e a asa iria embora
+  # inteira. G que se afirma é a direção.
+  def soltas(g):
+    return sum(
+      1
+      for r, linha in enumerate(g)
+      for c, v in enumerate(linha)
+      if v and sum(1 for n in banner._vizinhos(g, r, c) if n) < 4
+    )
+
+  assert soltas(limpo) < soltas(cru)
+  assert soltas(limpo) <= 4
 
 
 @pytest.mark.parametrize("tema", sorted(banner.THEMES))
@@ -336,7 +456,7 @@ def test_svg_desenha_o_emblema_so_quando_recebe_a_grade():
   sem = banner.svg(BASELINE_FAKE, "dark")
   com = banner.svg(BASELINE_FAKE, "dark", grade)
   assert com.count("<path") == sem.count("<path") + cores
-  assert quadrados(com) == quadrados(sem) + 645
+  assert quadrados(com) == quadrados(sem) + 623
 
 
 def test_emblema_ausente_nao_impede_o_banner(baseline, tmp_path, capsys):
@@ -372,7 +492,7 @@ def test_preview_do_emblema_nao_escreve_svg(tmp_path, capsys):
   saida = tmp_path / "docs"
   assert banner.main(["--preview-emblema", "--out-dir", str(saida)]) == 0
   out = capsys.readouterr().out
-  assert "64x24 células" in out
+  assert "62x22 células" in out
   assert "█" in out
   assert not saida.exists()
 
