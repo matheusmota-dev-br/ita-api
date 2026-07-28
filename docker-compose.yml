@@ -14,6 +14,8 @@ services:
     profiles:
       - chromedriver
 
+  # O banco é um arquivo SQLite construído pelo ETL na máquina host e montado
+  # read-only aqui. A API não migra nem escreve nada.
   api:
     build:
       context: .
@@ -22,27 +24,7 @@ services:
       - "8000:8000"
     container_name: ita-api
     environment:
-      DATABASE_URL: postgresql+asyncpg://${DB_USER:-ita}:${DB_PASSWORD:-ita_secret}@db:5432/${DB_NAME:-ita_db}
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: postgres:16-alpine
-    container_name: ita-db
-    environment:
-      POSTGRES_USER: ${DB_USER:-ita}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-ita_secret}
-      POSTGRES_DB: ${DB_NAME:-ita_db}
+      DATABASE_URL: sqlite+aiosqlite:////app/data/ita.db
+      MEDIA_ROOT: /app/data
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ita} -d ${DB_NAME:-ita_db}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
+      - ./data:/app/data:ro

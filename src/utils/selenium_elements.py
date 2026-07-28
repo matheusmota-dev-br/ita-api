@@ -1,6 +1,6 @@
-from typing import Optional, List, Dict
 from dataclasses import dataclass, field
 
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
@@ -8,15 +8,15 @@ from selenium.webdriver.remote.webelement import WebElement
 
 @dataclass
 class BaseElement:
-  name: Optional[str] = None
+  name: str | None = None
   identifier: str = ""
   identifier_type: By = By.XPATH
-  tag: Optional[str] = None
+  tag: str | None = None
 
   def find(self, ctx) -> WebElement:
     return ctx.find_element(self.identifier_type, self.identifier)
 
-  def find_all(self, ctx) -> List[WebElement]:
+  def find_all(self, ctx) -> list[WebElement]:
     return ctx.find_elements(self.identifier_type, self.identifier)
 
   def click(self, ctx) -> None:
@@ -29,7 +29,7 @@ class BaseElement:
 @dataclass
 class SeleniumElement(BaseElement):
   element: BaseElement = None
-  iframes: List[BaseElement] = field(default_factory=list)
+  iframes: list[BaseElement] = field(default_factory=list)
 
   def _resolve_context(self, driver: WebDriver):
     driver.switch_to.default_content()
@@ -49,7 +49,9 @@ class SeleniumElement(BaseElement):
     context = self._resolve_context(driver)
     try:
       self.find(context).click()
-    except:
+    except WebDriverException:
+      # Elemento coberto por outro nó ou fora da viewport: o clique via JS
+      # ignora hit-testing e funciona nos frames antigos do site do ITA.
       element = self.find(context)
       driver.execute_script("arguments[0].click()", element)
 
@@ -66,9 +68,9 @@ class SeleniumTableRow(SeleniumElement):
 @dataclass
 class SeleniumTable(SeleniumElement):
   row: SeleniumTableRow = None
-  headers: List[str] = field(default_factory=list)
+  headers: list[str] = field(default_factory=list)
 
-  def get_data(self, driver: WebDriver) -> List[Dict[str, str]]:
+  def get_data(self, driver: WebDriver) -> list[dict[str, str]]:
     data = []
     element = self.find(driver)
     rows = self.row.element.find_all(element)
@@ -91,8 +93,8 @@ class SeleniumTable(SeleniumElement):
 @dataclass
 class ITAProvasFlow:
   url: str
-  navigation_steps: List[SeleniumElement] = field(default_factory=list)
-  tables: List[SeleniumTable] = None
+  navigation_steps: list[SeleniumElement] = field(default_factory=list)
+  tables: list[SeleniumTable] = None
 
   def navigate(self, driver: WebDriver) -> None:
     for step in self.navigation_steps:

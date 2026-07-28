@@ -3,8 +3,8 @@ from src.etl.extract.constants import (
 )
 from src.utils.selenium_elements import (
   BaseElement,
-  SeleniumElement,
   ITAProvasFlow,
+  SeleniumElement,
   SeleniumTable,
   SeleniumTableRow,
 )

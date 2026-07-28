@@ -7,13 +7,13 @@ name = "pypi"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 sqlalchemy = {extras = ["asyncio"], version = "*"}
-asyncpg = "*"
+aiosqlite = "*"
 pydantic-settings = "*"
-psycopg2-binary = "*"
 requests = "*"
 
 [dev-packages]
 alembic = "*"
+anthropic = "*"
 pandas = "*"
 pymupdf = "*"
 matplotlib = "*"
@@ -21,6 +21,10 @@ ruff = "*"
 tqdm = "*"
 ipykernel = "*"
 selenium = "*"
+pytest = "*"
+pytest-asyncio = "*"
+httpx = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.10"

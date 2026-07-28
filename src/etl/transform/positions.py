@@ -8,7 +8,9 @@ from src.etl.transform.constants import (
 )
 
 
-def _find_question_positions_in_page(page, page_no: int) -> list[tuple[int, int, pymupdf.Rect]]:
+def _find_question_positions_in_page(
+  page, page_no: int
+) -> list[tuple[int, int, pymupdf.Rect]]:
   positions = []
   d = page.get_text("dict", clip=page.rect)
   lines_with_bbox: list[tuple[str, tuple[float, float, float, float]]] = []
@@ -35,7 +37,9 @@ def _find_question_positions_in_page(page, page_no: int) -> list[tuple[int, int,
   return positions
 
 
-def find_question_positions(doc, max_questions: int = MAX_QUESTIONS) -> list[tuple[int, int, pymupdf.Rect]]:
+def find_question_positions(
+  doc, max_questions: int = MAX_QUESTIONS
+) -> list[tuple[int, int, pymupdf.Rect]]:
   positions = []
   found_numbers = set()
   for page_no in range(len(doc)):

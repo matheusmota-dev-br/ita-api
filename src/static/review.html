@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria — ITA API</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ctext y=%2713%27 font-size=%2713%27%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/review.css">
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { createElement as h, useState, useEffect, useCallback, useRef, useMemo } from "/static/vendor/react.js";
+import { createRoot } from "/static/vendor/react-dom.js";
+import htm from "/static/vendor/htm.js";
+import { renderRich, insertAtCursor, SNIPPETS } from "/static/rich.js";
+const html = htm.bind(h);
+
+const api = (path) => fetch(path).then((r) => (r.ok ? r.json() : Promise.reject(r.status)));
+
+const send = async (path, method, body) => {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { "content-type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
+  return res.status === 204 ? null : res.json();
+};
+
+// A página é renderizada neste DPI pelo endpoint de imagem; converter pixels
+// exibidos em pontos do PDF depende de saber qual foi.
+const PAGE_DPI = 110;
+const MIN_SIDE_PT = 4;
+
+// ---------------------------------------------------------------- progresso
+
+function TopBar({ progress, doc, docProgress }) {
+  const p = progress || { total: 0, reviewed: 0, rejected: 0, pending: 0 };
+  const pct = (n) => (p.total ? `${(100 * n) / p.total}%` : "0%");
+  const done = p.reviewed + p.rejected;
+  const percent = p.total ? Math.round((100 * done) / p.total) : 0;
+
+  return html`<div class="topbar">
+    <div class="minibar" title=${`${done} de ${p.total} conferidas`}>
+      <i style=${{ width: pct(p.reviewed), background: "var(--ok)" }}></i>
+      <i style=${{ width: pct(p.rejected), background: "var(--bad)" }}></i>
+    </div>
+    <span class="tnum">${percent}%</span>
+    <span class="tsep"></span>
+    <span class="tdim">
+      <b class="ok">${p.reviewed}</b> ok ·
+      <b class="bad">${p.rejected}</b> rej ·
+      ${p.pending} pendentes de ${p.total}
+    </span>
+    ${doc &&
+    html`<span class="tsep"></span>
+      <span class="tdim" title=${doc.exam_slug}>
+        ${doc.exam_slug}: <b>${docProgress.done}</b>/${docProgress.total}
+      </span>
+      <div class="minibar sm">
+        <i style=${{
+          width: docProgress.total
+            ? `${(100 * docProgress.reviewed) / docProgress.total}%`
+            : 0,
+          background: "var(--ok)",
+        }}></i>
+        <i style=${{
+          width: docProgress.total
+            ? `${(100 * docProgress.rejected) / docProgress.total}%`
+            : 0,
+          background: "var(--bad)",
+        }}></i>
+      </div>`}
+    <span class="grow"></span>
+    <a class="tlink" href="/review/progresso" target="_blank">progresso detalhado ↗</a>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- documentos
+
+const ALL = "";
+
+function Select({ value, onChange, options, label }) {
+  return html`<select value=${value} onChange=${(e) => onChange(e.target.value)}>
+    <option value=${ALL}>${label}</option>
+    ${options.map((o) => html`<option key=${o} value=${o}>${o}</option>`)}
+  </select>`;
+}
+
+function Documents({ docs, sel, onSelect }) {
+  const [text, setText] = useState("");
+  const [type, setType] = useState(ALL);
+  const [year, setYear] = useState(ALL);
+  const [phase, setPhase] = useState(ALL);
+  const [discipline, setDiscipline] = useState(ALL);
+  const [kind, setKind] = useState(ALL);
+  const [pendingOnly, setPendingOnly] = useState(false);
+
+  // As opções saem dos documentos carregados em vez de uma lista fixa: assim
+  // um ano novo no corpus aparece no filtro sem mexer no código.
+  const uniq = (fn) => [...new Set(docs.map(fn).filter(Boolean))].sort();
+  const years = useMemo(() => uniq((d) => String(d.year)).reverse(), [docs]);
+  const types = useMemo(() => uniq((d) => d.test_type), [docs]);
+  const phases = useMemo(() => uniq((d) => d.phase), [docs]);
+  const disciplines = useMemo(() => uniq((d) => d.discipline), [docs]);
+
+  const term = text.trim().toLowerCase();
+  const shown = docs.filter((d) => {
+    if (type && d.test_type !== type) return false;
+    if (year && String(d.year) !== year) return false;
+    if (phase && d.phase !== phase) return false;
+    if (discipline && d.discipline !== discipline) return false;
+    if (kind && d.kind !== kind) return false;
+    if (pendingOnly && d.kind !== "gabarito") {
+      if (d.question_count - d.reviewed_count - d.rejected_count === 0) return false;
+    }
+    if (!term) return true;
+    return (
+      d.exam_slug.includes(term) ||
+      (d.discipline || "").includes(term) ||
+      d.source_column.includes(term)
+    );
+  });
+
+  const active = [type, year, phase, discipline, kind].filter(Boolean).length +
+    (pendingOnly ? 1 : 0);
+  const clear = () => {
+    setType(ALL); setYear(ALL); setPhase(ALL);
+    setDiscipline(ALL); setKind(ALL); setPendingOnly(false); setText("");
+  };
+
+  return html`<div class="col">
+    <div class="head">
+      <div class="headrow">
+        <span>${shown.length}${shown.length !== docs.length ? ` de ${docs.length}` : ""} documentos</span>
+        ${active > 0 && html`<button class="mini" onClick=${clear}>limpar ${active}</button>`}
+      </div>
+      <input
+        placeholder="filtrar por nome…"
+        value=${text}
+        onInput=${(e) => setText(e.target.value)} />
+      <div class="filters">
+        <${Select} value=${type} onChange=${setType} options=${types} label="tipo" />
+        <${Select} value=${year} onChange=${setYear} options=${years} label="ano" />
+        <${Select} value=${phase} onChange=${setPhase} options=${phases} label="fase" />
+        <${Select} value=${discipline} onChange=${setDiscipline} options=${disciplines} label="matéria" />
+        <${Select} value=${kind} onChange=${setKind} options=${["prova", "gabarito"]} label="documento" />
+        <label class="check">
+          <input type="checkbox" checked=${pendingOnly}
+            onChange=${(e) => setPendingOnly(e.target.checked)} />
+          pendentes
+        </label>
+      </div>
+    </div>
+    ${shown.map(
+      (d) => html`<div
+        key=${d.id}
+        class=${"row" + (sel === d.id ? " sel" : "")}
+        onClick=${() => onSelect(d.id)}>
+        <div class="main">
+          <div class="name">
+            ${d.exam_slug}${d.discipline ? ` · ${d.discipline}` : ""}
+            ${d.kind === "gabarito" ? " · gabarito" : ""}
+          </div>
+          <div class="sub">
+            ${d.kind === "gabarito"
+              ? `${d.answer_count} respostas`
+              : `${d.question_count} questões`}
+            ${d.kind !== "gabarito" && d.with_answer_count
+              ? ` · ${d.with_answer_count} c/ gabarito`
+              : ""}
+            ${d.page_count ? ` · ${d.page_count}pg` : ""}
+          </div>
+          <${Bar} doc=${d} />
+        </div>
+        <span class="pill">${d.kind === "gabarito" ? d.answer_count : `${d.reviewed_count}/${d.question_count}`}</span>
+      </div>`
+    )}
+    ${!shown.length && html`<div class="empty">nada corresponde ao filtro</div>`}
+  </div>`;
+}
+
+function Bar({ doc }) {
+  const total = doc.question_count || 0;
+  if (!total) return null;
+  const pct = (n) => `${(100 * n) / total}%`;
+  return html`<div class="bar">
+    <i style=${{ width: pct(doc.reviewed_count), background: "var(--ok)" }}></i>
+    <i style=${{ width: pct(doc.rejected_count), background: "var(--bad)" }}></i>
+  </div>`;
+}
+
+function Questions({ questions, sel, onSelect, doc }) {
+  const isKey = doc && doc.kind === "gabarito";
+  return html`<div class="col">
+    <div class="head">
+      ${isKey ? `${doc.answer_count} respostas` : `${questions.length} questões`}
+    </div>
+    ${questions.length
+      ? html`<div class="qgrid">
+          ${questions.map(
+            (q) => html`<div
+              key=${q.id}
+              class=${"q" + (sel === q.id ? " sel" : "")}
+              onClick=${() => onSelect(q.id)}>
+              ${q.number}
+              <span class=${"dot " + q.review_status}></span>
+            </div>`
+          )}
+        </div>`
+      : html`<div class="empty">
+          ${isKey
+            ? "gabarito: as respostas aparecem no painel à direita"
+            : doc
+              ? "nenhuma questão detectada — marque a região na página ao lado e crie uma"
+              : "escolha um documento"}
+        </div>`}
+  </div>`;
+}
+
+// ---------------------------------------------------------------- página
+
+const firstPage = (q) =>
+  (q && q.pages && q.pages.length ? q.pages[0].page_no : null) ??
+  (q && q.source ? q.source.page_start : 0) ??
+  0;
+
+const HANDLES = [
+  ["nw", 0, 0], ["n", 0.5, 0], ["ne", 1, 0],
+  ["w", 0, 0.5], ["e", 1, 0.5],
+  ["sw", 0, 1], ["s", 0.5, 1], ["se", 1, 1],
+];
+
+/** Aplica o deslocamento de um arraste a um retângulo, conforme a alça. */
+function resize(base, handle, dx, dy) {
+  const r = { ...base };
+  if (handle.includes("n")) r.y0 += dy;
+  if (handle.includes("s")) r.y1 += dy;
+  if (handle.includes("w")) r.x0 += dx;
+  if (handle.includes("e")) r.x1 += dx;
+  return r;
+}
+
+const normalize = (r) => ({
+  x0: Math.min(r.x0, r.x1), y0: Math.min(r.y0, r.y1),
+  x1: Math.max(r.x0, r.x1), y1: Math.max(r.y0, r.y1),
+});
+
+function PageView({ doc, question, questions, onCrop, onCreate, onAttachFigure, busy, imgKey }) {
+  const [page, setPage] = useState(() => firstPage(question));
+  const [sel, setSel] = useState(null);
+  const [creating, setCreating] = useState(null);
+  const [error, setError] = useState(null);
+  const dragRef = useRef(null);
+  const detachRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    setPage(firstPage(question));
+    setSel(null);
+    setCreating(null);
+  }, [question && question.id]);
+
+  // Solta os listeners ao desmontar, caso o componente saia no meio de um
+  // arraste (trocar de questão pelo teclado, por exemplo).
+  useEffect(() => () => detach(), []);
+
+  if (!doc || !Number.isInteger(page)) return null;
+
+  const last = (doc.page_count || 1) - 1;
+  // `highlight=` vazio é 422: o parâmetro é `int | None`, e string vazia não é
+  // nenhum dos dois. Sem questão selecionada o parâmetro simplesmente não vai.
+  const src =
+    `/api/v1/documents/${doc.id}/pages/${page}/image?boxes=1&dpi=${PAGE_DPI}&v=${imgKey}` +
+    (question ? `&highlight=${question.number}` : "");
+
+  function toPdf(e) {
+    const img = imgRef.current;
+    if (!img || !img.naturalWidth) return null;
+    const r = img.getBoundingClientRect();
+    const scale = PAGE_DPI / 72;
+    const pageW = img.naturalWidth / scale;
+    const pageH = img.naturalHeight / scale;
+    return {
+      x: Math.max(0, Math.min(pageW, ((e.clientX - r.left) / r.width) * pageW)),
+      y: Math.max(0, Math.min(pageH, ((e.clientY - r.top) / r.height) * pageH)),
+      pageW,
+      pageH,
+    };
+  }
+
+  // Os listeners são anexados no próprio mousedown, não num useEffect. O efeito
+  // só roda depois do render seguinte, e nesse intervalo os primeiros mousemove
+  // se perdiam — pior, um mouseup caindo na janela cega deixava o arraste aberto
+  // e o retângulo colado no cursor, que era o sintoma relatado.
+  //
+  // A função de remoção fica num ref porque os handlers são recriados a cada
+  // render: guardar o par exato que foi anexado é o que garante que ele saia.
+  function detach() {
+    if (detachRef.current) {
+      detachRef.current();
+      detachRef.current = null;
+    }
+  }
+
+  const start = (mode) => (e) => {
+    const origin = toPdf(e);
+    if (!origin) return;
+    e.preventDefault();
+    e.stopPropagation();
+    detach();
+
+    const base = sel;
+    const finish = () => {
+      detach();
+      dragRef.current = null;
+      setDragging(false);
+      // Descarta o clique solto que não virou retângulo, mas preserva qualquer
+      // seleção real: ela precisa sobreviver até ser aplicada ou cancelada.
+      setSel((s) =>
+        s && (s.x1 - s.x0 < MIN_SIDE_PT || s.y1 - s.y0 < MIN_SIDE_PT) ? null : s
+      );
+    };
+    const onMove = (ev) => {
+      // O botão já foi solto e o mouseup não chegou — soltou fora da janela,
+      // sobre outro plugin, com o foco perdido. Encerra em vez de seguir.
+      if (ev.buttons === 0) return finish();
+      const p = toPdf(ev);
+      if (!p) return;
+      const dx = p.x - origin.x;
+      const dy = p.y - origin.y;
+      if (mode === "new") {
+        setSel(normalize({ x0: origin.x, y0: origin.y, x1: p.x, y1: p.y }));
+      } else if (mode === "move") {
+        setSel({
+          x0: base.x0 + dx, y0: base.y0 + dy,
+          x1: base.x1 + dx, y1: base.y1 + dy,
+        });
+      } else {
+        setSel(normalize(resize(base, mode, dx, dy)));
+      }
+    };
+
+    window.addEventListener("mousemove", onMove, true);
+    window.addEventListener("mouseup", finish, true);
+    detachRef.current = () => {
+      window.removeEventListener("mousemove", onMove, true);
+      window.removeEventListener("mouseup", finish, true);
+    };
+
+    dragRef.current = { mode };
+    setDragging(true);
+    if (mode === "new") setSel({ x0: origin.x, y0: origin.y, x1: origin.x, y1: origin.y });
+  };
+
+  const dims = () => {
+    const img = imgRef.current;
+    const scale = PAGE_DPI / 72;
+    return img && img.naturalWidth
+      ? { w: img.naturalWidth / scale, h: img.naturalHeight / scale }
+      : { w: 1, h: 1 };
+  };
+
+  const style = () => {
+    const { w, h } = dims();
+    return {
+      left: `${(100 * sel.x0) / w}%`,
+      top: `${(100 * sel.y0) / h}%`,
+      width: `${(100 * (sel.x1 - sel.x0)) / w}%`,
+      height: `${(100 * (sel.y1 - sel.y0)) / h}%`,
+    };
+  };
+
+  const bbox = () => ({ page_no: page, part_index: 0, ...sel });
+
+  const nextNumber = () => {
+    const used = new Set((questions || []).map((q) => q.number));
+    let n = 1;
+    while (used.has(n)) n += 1;
+    return n;
+  };
+
+  const submitNew = async () => {
+    setError(null);
+    try {
+      await onCreate({ number: Number(creating), bbox: bbox() });
+      setSel(null);
+      setCreating(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return html`<div class="card">
+    <h3>Página do documento — arraste para marcar uma região</h3>
+    <div class=${"tabs" + (sel ? " sticky" : "")}>
+      <button onClick=${() => setPage(Math.max(0, page - 1))} disabled=${page <= 0}>‹</button>
+      <span class="pill">página ${page + 1} de ${last + 1}</span>
+      <button onClick=${() => setPage(Math.min(last, page + 1))} disabled=${page >= last}>›</button>
+      <span class="grow"></span>
+      ${sel
+        ? creating !== null
+          ? html`<span class="kbd">número:</span>
+              <input class="num" type="number" min="1" value=${creating} autoFocus
+                onInput=${(e) => setCreating(e.target.value)}
+                onKeyDown=${(e) => e.key === "Enter" && submitNew()} />
+              <button class="ok" disabled=${busy || !creating} onClick=${submitNew}>
+                Criar questão ${creating}
+              </button>
+              <button onClick=${() => setCreating(null)}>Voltar</button>`
+          : html`<span class="kbd">
+                ${Math.round(sel.x1 - sel.x0)}×${Math.round(sel.y1 - sel.y0)} pt
+              </span>
+              ${question &&
+              html`<button class="ok" disabled=${busy} onClick=${() => { onCrop(bbox()); setSel(null); }}>
+                ✓ Recorte da questão ${question.number}
+              </button>`}
+              ${question &&
+              html`<button disabled=${busy} onClick=${() => { onAttachFigure(bbox()); setSel(null); }}>
+                ＋ Anexar figura
+              </button>`}
+              <button disabled=${busy} onClick=${() => setCreating(String(nextNumber()))}>
+                ＋ Criar questão
+              </button>
+              <button onClick=${() => setSel(null)}>Cancelar</button>`
+        : html`<span class="kbd">arraste sobre a página para marcar uma região</span>`}
+    </div>
+    ${error && html`<div class="err">${error}</div>`}
+    <div class="pagewrap" onMouseDown=${start("new")}>
+      <img ref=${imgRef} class="shot" src=${src} alt=${"pagina " + page} draggable=${false} />
+      ${sel &&
+      html`<div class="croprect" style=${style()} onMouseDown=${start("move")}>
+        ${HANDLES.map(
+          ([name, fx, fy]) => html`<span
+            key=${name}
+            class=${"handle h-" + name}
+            style=${{ left: `${fx * 100}%`, top: `${fy * 100}%` }}
+            onMouseDown=${start(name)}></span>`
+        )}
+      </div>`}
+    </div>
+    ${sel &&
+    html`<div class="sub" style=${{ marginTop: "6px" }}>
+      região marcada: x ${Math.round(sel.x0)}–${Math.round(sel.x1)},
+      y ${Math.round(sel.y0)}–${Math.round(sel.y1)} pt ·
+      arraste as alças para ajustar, ou o meio para mover
+    </div>`}
+  </div>`;
+}
+
+// ---------------------------------------------------------------- editor
+
+/** Preview renderizado: LaTeX vira MathML, o resto vira HTML. */
+function Rich({ text, empty, block }) {
+  if (!text || !text.trim())
+    return html`<span class="faint">${empty || "—"}</span>`;
+  return html`<div
+    class=${"rich" + (block ? " block" : "")}
+    dangerouslySetInnerHTML=${{ __html: renderRich(text) }} />`;
+}
+
+function EquationBar({ target }) {
+  return html`<div class="eqbar">
+    ${SNIPPETS.map(
+      (s) => html`<button
+        key=${s.label}
+        type="button"
+        class="eq"
+        title=${`${s.title} — ${s.latex}`}
+        onMouseDown=${(e) => e.preventDefault()}
+        onClick=${() => target(s.latex)}>
+        ${s.label}
+      </button>`
+    )}
+  </div>`;
+}
+
+/** Figuras anexadas + o catálogo das regiões soltas do documento. */
+function Figures({ doc, question, onDetach, onAttachRegion, busy, imgKey }) {
+  const [loose, setLoose] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || loose !== null || !doc) return;
+    api(`/api/v1/documents/${doc.id}/figuras`).then(setLoose).catch(() => setLoose([]));
+  }, [open, doc && doc.id]);
+
+  const figures = question.figures || [];
+
+  return html`<div class="card">
+    <h3>
+      Figuras da questão
+      <span class="kbd" style=${{ textTransform: "none", marginLeft: "8px" }}>
+        para a figura impressa longe do enunciado
+      </span>
+    </h3>
+
+    ${figures.length
+      ? html`<div class="figrow">
+          ${figures.map(
+            (f) => html`<div class="fig" key=${f.asset_id}>
+              <img src=${`${f.image_url}?v=${imgKey}`} alt=${"figura " + f.asset_id} />
+              <div class="figbar">
+                <span class="kbd">página ${f.page_no + 1}</span>
+                <span class="grow"></span>
+                <button class="mini bad" disabled=${busy}
+                  onClick=${() => onDetach(f.asset_id)}>remover</button>
+              </div>
+            </div>`
+          )}
+        </div>`
+      : html`<div class="sub">
+          Nenhuma figura anexada. Marque a região na página abaixo e use
+          <b>＋ Anexar figura</b>, ou escolha uma das regiões que o pipeline já
+          recortou.
+        </div>`}
+
+    <div class="tabs" style=${{ marginTop: "10px", marginBottom: 0 }}>
+      <button class="mini" onClick=${() => setOpen(!open)}>
+        ${open ? "ocultar" : "ver"} regiões soltas do documento
+      </button>
+      ${open && loose && html`<span class="kbd">${loose.length} recortadas fora de questões</span>`}
+    </div>
+
+    ${open &&
+    (loose === null
+      ? html`<div class="empty">carregando…</div>`
+      : loose.length
+        ? html`<div class="figrow loose">
+            ${loose.map(
+              (r) => html`<div class="fig" key=${r.name}>
+                <img src=${r.image_url} alt=${r.name} loading="lazy" />
+                <div class="figbar">
+                  <span class="kbd">${r.name}</span>
+                  <span class="grow"></span>
+                  <button class="mini" disabled=${busy}
+                    onClick=${() => onAttachRegion(r)}>anexar</button>
+                </div>
+              </div>`
+            )}
+          </div>`
+        : html`<div class="sub">
+            O transform não recortou nenhuma região fora de questão neste documento.
+          </div>`)}
+  </div>`;
+}
+
+function Workspace({ question, onSave, busy, imgKey }) {
+  const [text, setText] = useState("");
+  const [alts, setAlts] = useState({});
+  const [dirty, setDirty] = useState(false);
+  const [suggestion, setSuggestion] = useState(null);
+  const [preview, setPreview] = useState(true);
+  const areaRef = useRef(null);
+  const focusRef = useRef(null);
+
+  useEffect(() => {
+    setText(question.statement_markdown || "");
+    setAlts(
+      Object.fromEntries(
+        (question.alternatives || []).map((a) => [a.letter, a.text_markdown || ""])
+      )
+    );
+    setDirty(false);
+    setSuggestion(null);
+    api(`/api/v1/questions/${question.id}/autofill`).then(setSuggestion).catch(() => {});
+  }, [question.id, imgKey]);
+
+  const setAlt = (letter, value) => {
+    setAlts((prev) => ({ ...prev, [letter]: value }));
+    setDirty(true);
+  };
+
+  // Só preenche o que está vazio: o auto-preenchimento é um atalho, não pode
+  // apagar uma correção já feita à mão.
+  const applySuggestion = () => {
+    if (!suggestion) return;
+    if (!text.trim() && suggestion.statement) setText(suggestion.statement);
+    setAlts((prev) => {
+      const next = { ...prev };
+      for (const [letter, value] of Object.entries(suggestion.alternatives)) {
+        if (!(next[letter] || "").trim()) next[letter] = value;
+      }
+      return next;
+    });
+    setDirty(true);
+  };
+
+  const insert = (latex) => {
+    const field = focusRef.current || areaRef.current;
+    if (!field) return;
+    const { value, caret } = insertAtCursor(field, latex);
+    if (field === areaRef.current) {
+      setText(value);
+    } else {
+      setAlt(field.dataset.letter, value);
+    }
+    setDirty(true);
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(caret, caret);
+    });
+  };
+
+  const filled = suggestion ? Object.keys(suggestion.alternatives).length : 0;
+
+  return html`<div class="card">
+    <h3>
+      Transcrição
+      <span class="kbd" style=${{ textTransform: "none", marginLeft: "8px" }}>
+        salvar marca como revisada e dispensa o LLM
+      </span>
+    </h3>
+
+    <div class="split">
+      <div class="pane">
+        <div class="panehead">recorte</div>
+        ${(question.pages || []).map(
+          (p) => html`<img
+            key=${p.part_index}
+            class="shot"
+            src=${`/api/v1/questions/${question.id}/image?part=${p.part_index}&v=${imgKey}`}
+            alt=${"recorte parte " + p.part_index} />`
+        )}
+        ${!(question.pages || []).length && html`<div class="empty">sem recorte</div>`}
+      </div>
+      <div class="pane">
+        <div class="panehead">texto bruto extraído do PDF</div>
+        <pre class="raw">${question.statement_raw || "(vazio)"}</pre>
+        ${suggestion &&
+        html`<div class="tabs" style=${{ marginTop: "8px", marginBottom: 0 }}>
+          <button disabled=${busy || (!filled && !suggestion.statement)} onClick=${applySuggestion}>
+            ⤓ Preencher do texto bruto
+          </button>
+          <span class="kbd">
+            ${filled
+              ? `${filled} alternativa${filled > 1 ? "s" : ""} reconhecida${filled > 1 ? "s" : ""}`
+              : "nenhuma alternativa reconhecida"}
+            ${suggestion.style ? ` · estilo ${suggestion.style}` : ""}
+          </span>
+        </div>
+        <div class="sub" style=${{ marginTop: "4px" }}>
+          só preenche campos vazios; confira contra o recorte antes de salvar
+        </div>`}
+      </div>
+    </div>
+
+    <div class="tabs" style=${{ marginTop: "14px", marginBottom: "4px" }}>
+      <span class="panehead" style=${{ margin: 0 }}>enunciado</span>
+      <span class="grow"></span>
+      <button class=${"mini" + (preview ? " on" : "")} onClick=${() => setPreview(!preview)}>
+        ${preview ? "ocultar preview" : "mostrar preview"}
+      </button>
+    </div>
+    <${EquationBar} target=${insert} />
+    <textarea
+      ref=${areaRef}
+      placeholder=${"Enunciado em Markdown com LaTeX: $x^2$ inline, $$...$$ em bloco, ![figura](caminho)."}
+      value=${text}
+      onFocus=${() => (focusRef.current = areaRef.current)}
+      onInput=${(e) => { setText(e.target.value); setDirty(true); }} />
+    ${preview &&
+    html`<div class="preview">
+      <div class="panehead">preview</div>
+      <${Rich} text=${text} empty="o enunciado renderizado aparece aqui" block=${true} />
+    </div>`}
+
+    ${(question.alternatives || []).length
+      ? html`<div class="panehead" style=${{ marginTop: "12px" }}>alternativas</div>
+          <table><tbody>
+          ${question.alternatives.map(
+            (a) => html`<tr key=${a.letter} class=${a.is_correct ? "correct" : ""}>
+              <td class="letter">${a.letter}</td>
+              <td>
+                <input
+                  class="alt"
+                  data-letter=${a.letter}
+                  value=${alts[a.letter] ?? ""}
+                  placeholder=${a.text_raw || "(sem texto)"}
+                  onFocus=${(e) => (focusRef.current = e.target)}
+                  onInput=${(e) => setAlt(a.letter, e.target.value)} />
+                ${preview && (alts[a.letter] || "").includes("$") &&
+                html`<div class="preview inline"><${Rich} text=${alts[a.letter]} /></div>`}
+              </td>
+              <td class="pill">${a.is_correct === true ? "gabarito" : ""}</td>
+            </tr>`
+          )}
+        </tbody></table>`
+      : ""}
+
+    <div class="tabs" style=${{ marginTop: "10px", marginBottom: 0 }}>
+      <button
+        class=${dirty ? "ok" : ""}
+        disabled=${busy || !dirty}
+        onClick=${() => { onSave(text, alts); setDirty(false); }}>
+        Salvar transcrição
+      </button>
+      ${dirty && html`<span class="kbd">alterações não salvas</span>`}
+    </div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- detalhe
+
+function Detail({ doc, question, questions, onReview, onCrop, onSave, onCreate, onDelete, onRenumber, onAttachFigure, onDetachFigure, busy, imgKey }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renumber, setRenumber] = useState("");
+  useEffect(() => { setConfirmDelete(false); setRenumber(""); }, [question && question.id]);
+
+  const page = html`<${PageView}
+    doc=${doc} question=${question} questions=${questions}
+    onCrop=${onCrop} onCreate=${onCreate} onAttachFigure=${onAttachFigure}
+    busy=${busy} imgKey=${imgKey} />`;
+
+  if (!question)
+    return html`<main>
+      <h2>${doc ? doc.exam_slug : ""}</h2>
+      <div class="meta">
+        Nenhuma questão selecionada. Navegue pelas páginas abaixo e marque uma
+        região para criar uma questão.
+      </div>
+      ${page}
+    </main>`;
+
+  return html`<main>
+    <h2>Questão ${question.number} · ${question.year} ${question.phase}</h2>
+    <div class="meta">
+      ${question.discipline || "sem matéria"}
+      ${question.discipline_source ? html` (via ${question.discipline_source})` : ""}
+      · status <code>${question.review_status}</code>
+      · páginas ${question.source ? `${question.source.page_start}–${question.source.page_end}` : "?"}
+      ${question.has_figure ? " · tem figura" : ""}
+      ${question.needs_llm === true
+        ? html` · <span class="tag on">precisa de LLM</span>`
+        : question.needs_llm === false
+          ? html` · <span class="tag off">dispensa LLM</span>`
+          : ""}
+      <br />fonte: <code>${question.source ? question.source.local_path : ""}</code>
+    </div>
+
+    <${Workspace} question=${question} onSave=${onSave} busy=${busy} imgKey=${imgKey} />
+    <${Figures}
+      doc=${doc}
+      question=${question}
+      onDetach=${onDetachFigure}
+      onAttachRegion=${(r) => onAttachFigure({
+        page_no: r.page_no, part_index: 0,
+        x0: r.bbox[0], y0: r.bbox[1], x1: r.bbox[2], y1: r.bbox[3],
+      })}
+      busy=${busy}
+      imgKey=${imgKey} />
+    ${page}
+
+    <div class="card">
+      <h3>Estrutura</h3>
+      <div class="tabs" style=${{ marginBottom: 0 }}>
+        <span class="kbd">renumerar para</span>
+        <input class="num" type="number" min="1" value=${renumber}
+          placeholder=${question.number}
+          onInput=${(e) => setRenumber(e.target.value)}
+          onKeyDown=${(e) => e.key === "Enter" && renumber && onRenumber(Number(renumber))} />
+        <button disabled=${busy || !renumber} onClick=${() => onRenumber(Number(renumber))}>
+          Aplicar
+        </button>
+        <span class="kbd">se o número existir, as duas trocam</span>
+        <span class="grow"></span>
+        ${confirmDelete
+          ? html`<span class="warn">excluir a questão ${question.number}?</span>
+              <button class="bad" disabled=${busy} onClick=${() => onDelete()}>Confirmar</button>
+              <button onClick=${() => setConfirmDelete(false)}>Cancelar</button>`
+          : html`<button class="bad" disabled=${busy} onClick=${() => setConfirmDelete(true)}>
+              Excluir questão
+            </button>`}
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class=${"ok" + (question.review_status === "human_verified" ? " on" : "")}
+        disabled=${busy} onClick=${() => onReview("human_verified")}>
+        ✓ Aprovar <span class="kbd">A</span>
+      </button>
+      <button class=${"bad" + (question.review_status === "rejected" ? " on" : "")}
+        disabled=${busy} onClick=${() => onReview("rejected")}>
+        ✕ Rejeitar <span class="kbd">R</span>
+      </button>
+      <button disabled=${busy} onClick=${() => onReview("raw")}>Limpar</button>
+      <span style=${{ width: "16px" }}></span>
+      <span class="kbd">LLM:</span>
+      <button class=${question.needs_llm === true ? "on" : ""} disabled=${busy}
+        onClick=${() => onReview(null, { needs_llm: true })}>
+        precisa <span class="kbd">L</span>
+      </button>
+      <button class=${question.needs_llm === false ? "on" : ""} disabled=${busy}
+        onClick=${() => onReview(null, { needs_llm: false })}>
+        dispensa <span class="kbd">D</span>
+      </button>
+      <span class="grow"></span>
+      <span class="kbd">↑↓ navega · ←→ documento</span>
+    </div>
+  </main>`;
+}
+
+function AnswerKey({ doc }) {
+  const [answers, setAnswers] = useState(null);
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    setAnswers(null);
+    if (doc) api(`/api/v1/documents/${doc.id}/answers`).then(setAnswers);
+  }, [doc && doc.id]);
+  if (!doc) return null;
+
+  const byColumn = {};
+  for (const a of answers || []) (byColumn[a.column] ??= []).push(a);
+  const unlabelled = (answers || []).filter((a) => !a.discipline).length;
+
+  return html`<main>
+    <h2>Gabarito · ${doc.exam_slug}</h2>
+    <div class="meta">
+      ${(answers || []).length} respostas em ${Object.keys(byColumn).length} colunas
+      ${unlabelled ? html` · <span class="warn">${unlabelled} sem matéria identificada</span>` : ""}
+      <br />fonte: <code>${doc.local_path}</code>
+    </div>
+
+    <div class="card">
+      <h3>Respostas parseadas</h3>
+      ${answers === null
+        ? html`<div class="empty">carregando…</div>`
+        : html`<div style=${{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
+            ${Object.entries(byColumn).map(
+              ([col, list]) => html`<div key=${col}>
+                <div class="sub" style=${{ marginBottom: "4px" }}>
+                  coluna ${col} · ${list[0].discipline || "sem matéria"}
+                </div>
+                <table><tbody>
+                  ${list.map(
+                    (a) => html`<tr key=${a.number}>
+                      <td class="letter">${a.number}</td>
+                      <td style=${{ fontWeight: 700 }}>
+                        ${a.annulled ? html`<span class="warn">anulada</span>` : a.letter}
+                      </td>
+                    </tr>`
+                  )}
+                </tbody></table>
+              </div>`
+            )}
+          </div>`}
+    </div>
+
+    <div class="card">
+      <h3>PDF do gabarito</h3>
+      <div class="tabs">
+        <button onClick=${() => setPage(Math.max(0, page - 1))} disabled=${page <= 0}>‹</button>
+        <span class="pill" style=${{ alignSelf: "center" }}>
+          página ${page + 1} de ${doc.page_count || 1}
+        </span>
+        <button
+          onClick=${() => setPage(Math.min((doc.page_count || 1) - 1, page + 1))}
+          disabled=${page >= (doc.page_count || 1) - 1}>›</button>
+      </div>
+      <img class="shot" src=${`/api/v1/documents/${doc.id}/pages/${page}/image?boxes=0&dpi=150`} />
+    </div>
+  </main>`;
+}
+
+// ---------------------------------------------------------------- app
+
+function App() {
+  const [docs, setDocs] = useState([]);
+  const [docId, setDocId] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [qid, setQid] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [imgKey, setImgKey] = useState(0);
+  const [toast, setToast] = useState(null);
+  const detailRef = useRef(null);
+
+  const reloadDocs = useCallback(() => {
+    api("/api/v1/documents").then(setDocs);
+    api("/api/v1/documents/progress").then(setProgress);
+  }, []);
+  useEffect(reloadDocs, [reloadDocs]);
+
+  const loadQuestions = useCallback(async (id, keepNumber) => {
+    const ids = await api(`/api/v1/documents/${id}/questions`);
+    const loaded = await Promise.all(ids.map((q) => api(`/api/v1/questions/${q}`)));
+    setQuestions(loaded);
+    setQid((current) => {
+      if (keepNumber != null) {
+        const match = loaded.find((q) => q.number === keepNumber);
+        if (match) return match.id;
+      }
+      if (loaded.some((q) => q.id === current)) return current;
+      return loaded.length ? loaded[0].id : null;
+    });
+    return loaded;
+  }, []);
+
+  useEffect(() => {
+    if (docId == null) return;
+    setQuestions([]);
+    setQid(null);
+    loadQuestions(docId);
+  }, [docId, loadQuestions]);
+
+  const detail = questions.find((q) => q.id === qid) || null;
+  detailRef.current = detail;
+
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (main) main.scrollTop = 0;
+  }, [qid]);
+
+  const flash = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const post = useCallback(
+    async (patch) => {
+      const q = detailRef.current;
+      if (!q) return;
+      setBusy(true);
+      try {
+        await send(`/api/v1/questions/${q.id}/review`, "POST", patch);
+        const fresh = await api(`/api/v1/questions/${q.id}?t=${Date.now()}`);
+        setQuestions((prev) => prev.map((x) => (x.id === q.id ? fresh : x)));
+        setImgKey((k) => k + 1);
+        reloadDocs();
+      } catch (err) {
+        flash(`falhou: ${err.message}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [reloadDocs]
+  );
+
+  const review = useCallback(
+    (status, extra = {}) => post(status ? { status, ...extra } : extra),
+    [post]
+  );
+  const crop = useCallback((bbox) => post({ bbox }), [post]);
+  const save = useCallback(
+    (statement_markdown, alternatives) =>
+      post({ statement_markdown, alternatives, needs_llm: false }),
+    [post]
+  );
+
+  const create = useCallback(
+    async (body) => {
+      setBusy(true);
+      try {
+        const res = await send(`/api/v1/documents/${docId}/questions`, "POST", body);
+        await loadQuestions(docId, res.number);
+        setImgKey((k) => k + 1);
+        reloadDocs();
+        flash(`questão ${res.number} criada`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [docId, loadQuestions, reloadDocs]
+  );
+
+  const remove = useCallback(async () => {
+    const q = detailRef.current;
+    if (!q) return;
+    setBusy(true);
+    try {
+      await send(`/api/v1/questions/${q.id}`, "DELETE");
+      setQid(null);
+      await loadQuestions(docId);
+      setImgKey((k) => k + 1);
+      reloadDocs();
+      flash(`questão ${q.number} excluída`);
+    } catch (err) {
+      flash(`falhou: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [docId, loadQuestions, reloadDocs]);
+
+  const attachFigure = useCallback(
+    async (bbox) => {
+      const q = detailRef.current;
+      if (!q) return;
+      setBusy(true);
+      try {
+        await send(`/api/v1/questions/${q.id}/figuras`, "POST", { bbox });
+        const fresh = await api(`/api/v1/questions/${q.id}?t=${Date.now()}`);
+        setQuestions((prev) => prev.map((x) => (x.id === q.id ? fresh : x)));
+        setImgKey((k) => k + 1);
+        flash("figura anexada");
+      } catch (err) {
+        flash(`falhou: ${err.message}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    []
+  );
+
+  const detachFigure = useCallback(async (assetId) => {
+    const q = detailRef.current;
+    if (!q) return;
+    setBusy(true);
+    try {
+      await send(`/api/v1/questions/${q.id}/figuras/${assetId}`, "DELETE");
+      const fresh = await api(`/api/v1/questions/${q.id}?t=${Date.now()}`);
+      setQuestions((prev) => prev.map((x) => (x.id === q.id ? fresh : x)));
+      setImgKey((k) => k + 1);
+      flash("figura removida");
+    } catch (err) {
+      flash(`falhou: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const renumber = useCallback(
+    async (number) => {
+      const q = detailRef.current;
+      if (!q) return;
+      setBusy(true);
+      try {
+        const res = await send(`/api/v1/questions/${q.id}/number`, "POST", { number });
+        await loadQuestions(docId, number);
+        setImgKey((k) => k + 1);
+        reloadDocs();
+        flash(
+          res.swapped_with != null
+            ? `trocadas: ${res.swapped_with} ↔ ${res.number}`
+            : `renumerada para ${res.number}`
+        );
+      } catch (err) {
+        flash(`falhou: ${err.message}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [docId, loadQuestions, reloadDocs]
+  );
+
+  // Navegação por teclado: auditar 2730 questões no mouse seria inviável.
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = e.target.tagName;
+      // TEXTAREA faltava aqui: digitar "a" no enunciado aprovava a questão.
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const qIndex = questions.findIndex((q) => q.id === qid);
+      const dIndex = docs.findIndex((d) => d.id === docId);
+      if (e.key === "ArrowDown" || e.key === "j") {
+        if (qIndex >= 0 && qIndex < questions.length - 1) setQid(questions[qIndex + 1].id);
+        e.preventDefault();
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        if (qIndex > 0) setQid(questions[qIndex - 1].id);
+        e.preventDefault();
+      } else if (e.key === "ArrowRight") {
+        if (dIndex >= 0 && dIndex < docs.length - 1) setDocId(docs[dIndex + 1].id);
+        e.preventDefault();
+      } else if (e.key === "ArrowLeft") {
+        if (dIndex > 0) setDocId(docs[dIndex - 1].id);
+        e.preventDefault();
+      } else if (e.key === "a" || e.key === "A") {
+        review("human_verified");
+      } else if (e.key === "r" || e.key === "R") {
+        review("rejected");
+      } else if (e.key === "l" || e.key === "L") {
+        review(null, { needs_llm: true });
+      } else if (e.key === "d" || e.key === "D") {
+        review(null, { needs_llm: false });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [questions, qid, docs, docId, review]);
+
+  const doc = docs.find((d) => d.id === docId) || null;
+  const docProgress = doc
+    ? {
+        total: doc.question_count,
+        reviewed: doc.reviewed_count,
+        rejected: doc.rejected_count,
+        done: doc.reviewed_count + doc.rejected_count,
+      }
+    : { total: 0, reviewed: 0, rejected: 0, done: 0 };
+
+  return html`
+    <${TopBar} progress=${progress} doc=${doc} docProgress=${docProgress} />
+    <div class="panes">
+      <${Documents} docs=${docs} sel=${docId} onSelect=${setDocId} />
+      <${Questions} questions=${questions} sel=${qid} onSelect=${setQid} doc=${doc} />
+      <div class="col">
+        ${doc && doc.kind === "gabarito"
+          ? html`<${AnswerKey} doc=${doc} />`
+          : html`<${Detail}
+              doc=${doc}
+              question=${detail}
+              questions=${questions}
+              onReview=${review}
+              onCrop=${crop}
+              onSave=${save}
+              onCreate=${create}
+              onDelete=${remove}
+              onRenumber=${renumber}
+              onAttachFigure=${attachFigure}
+              onDetachFigure=${detachFigure}
+              busy=${busy}
+              imgKey=${imgKey} />`}
+      </div>
+    </div>
+    ${toast && html`<div class="toast">${toast}</div>`}`;
+}
+
+createRoot(document.getElementById("app")).render(html`<${App} />`);
+</script>
+</body>
+</html>

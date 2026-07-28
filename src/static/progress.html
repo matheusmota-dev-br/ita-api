@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progresso da auditoria — ITA API</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ctext y=%2713%27 font-size=%2713%27%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/review.css">
+<style>
+  body { overflow: auto; }
+  #app { height: auto; display: block; }
+  .wrap { max-width: 1150px; margin: 0 auto; padding: 24px 22px 60px; }
+  h1 { font-size: 21px; margin: 0 0 3px; }
+  .lede { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
+  .lede a { color: var(--accent); }
+  .big { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+  .stat .n { font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .stat .l { font-size: 11.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+  .stat.ok .n { color: var(--ok); }
+  .stat.bad .n { color: var(--bad); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th {
+    text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--faint); font-weight: 600; padding: 0 8px 6px; border-bottom: 1px solid var(--line);
+  }
+  .tbl th.r, .tbl td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .tbl td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .track { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; display: flex; min-width: 90px; }
+  .track i { display: block; height: 100%; }
+  .muted { color: var(--faint); }
+  .flag { font-size: 10.5px; padding: 1px 6px; border-radius: 99px; border: 1px solid var(--warn); color: var(--warn); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { createElement as h, useState, useEffect } from "/static/vendor/react.js";
+import { createRoot } from "/static/vendor/react-dom.js";
+import htm from "/static/vendor/htm.js";
+const html = htm.bind(h);
+
+const pct = (n, total) => (total ? `${(100 * n) / total}%` : "0%");
+
+function Track({ row }) {
+  return html`<div class="track" title=${`${row.reviewed} ok · ${row.rejected} rejeitadas · ${row.pending} pendentes`}>
+    <i style=${{ width: pct(row.reviewed, row.total), background: "var(--ok)" }}></i>
+    <i style=${{ width: pct(row.rejected, row.total), background: "var(--bad)" }}></i>
+  </div>`;
+}
+
+function Table({ title, rows, note }) {
+  const sorted = [...rows].sort((a, b) => b.total - a.total);
+  return html`<div class="card">
+    <h3>${title}</h3>
+    ${note && html`<div class="sub" style=${{ marginBottom: "8px" }}>${note}</div>`}
+    <table class="tbl">
+      <thead><tr>
+        <th></th><th class="r">total</th><th class="r">ok</th>
+        <th class="r">rej</th><th class="r">pend</th><th style=${{ width: "110px" }}></th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(
+          (r) => html`<tr key=${r.label}>
+            <td>${r.label}${r.empty_text ? html` <span class="flag" title="questões sem texto extraído">${r.empty_text} s/ texto</span>` : ""}</td>
+            <td class="r">${r.total}</td>
+            <td class="r" style=${{ color: r.reviewed ? "var(--ok)" : "" }}>${r.reviewed || html`<span class="muted">0</span>`}</td>
+            <td class="r" style=${{ color: r.rejected ? "var(--bad)" : "" }}>${r.rejected || html`<span class="muted">0</span>`}</td>
+            <td class="r">${r.pending}</td>
+            <td><${Track} row=${r} /></td>
+          </tr>`
+        )}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function App() {
+  const [data, setData] = useState(null);
+  const [docs, setDocs] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/v1/documents/progress/detalhado").then((r) => r.json()),
+      fetch("/api/v1/documents").then((r) => r.json()),
+    ])
+      .then(([detail, documents]) => { setData(detail); setDocs(documents); })
+      .catch((e) => setError(String(e)));
+  }, []);
+
+  if (error) return html`<div class="wrap"><div class="err">falhou ao carregar: ${error}</div></div>`;
+  if (!data) return html`<div class="wrap"><div class="empty">carregando…</div></div>`;
+
+  const o = data.overall;
+  const done = o.reviewed + o.rejected;
+  const percent = o.total ? Math.round((100 * done) / o.total) : 0;
+
+  // Documentos ainda intocados, ordenados do maior para o menor: é a resposta
+  // prática para "por onde continuar".
+  const byDoc = data.by_document || {};
+  const untouched = docs
+    .filter((d) => d.kind !== "gabarito" && d.question_count > 0)
+    .map((d) => ({ ...d, stat: byDoc[d.id] }))
+    .filter((d) => d.stat && d.stat.pending === d.stat.total)
+    .sort((a, b) => b.question_count - a.question_count);
+
+  const partial = docs
+    .filter((d) => d.kind !== "gabarito" && d.question_count > 0)
+    .map((d) => ({ ...d, stat: byDoc[d.id] }))
+    .filter((d) => d.stat && d.stat.pending > 0 && d.stat.pending < d.stat.total)
+    .sort((a, b) => b.stat.pending - a.stat.pending);
+
+  return html`<div class="wrap">
+    <h1>Progresso da auditoria</h1>
+    <div class="lede">
+      Conferência humana de cada questão do corpus.
+      <a href="/review">voltar para a auditoria</a>
+    </div>
+
+    <div class="card">
+      <div class="big">
+        <div class="stat"><div class="n">${percent}%</div><div class="l">conferido</div></div>
+        <div class="stat ok"><div class="n">${o.reviewed}</div><div class="l">aprovadas</div></div>
+        <div class="stat bad"><div class="n">${o.rejected}</div><div class="l">rejeitadas</div></div>
+        <div class="stat"><div class="n">${o.pending}</div><div class="l">pendentes</div></div>
+        <div class="stat"><div class="n">${o.total}</div><div class="l">questões</div></div>
+      </div>
+      <${Track} row=${{ ...o, total: o.total || 1 }} />
+    </div>
+
+    <div class="grid">
+      <${Table} title="Por tipo de prova" rows=${data.by_test_type} />
+      <${Table} title="Por matéria" rows=${data.by_discipline} />
+      <${Table} title="Por fase" rows=${data.by_phase} />
+      <${Table} title="Por ano" rows=${data.by_year} />
+    </div>
+
+    ${partial.length
+      ? html`<div class="card">
+          <h3>Documentos começados, não terminados (${partial.length})</h3>
+          <table class="tbl"><tbody>
+            ${partial.slice(0, 25).map(
+              (d) => html`<tr key=${d.id}>
+                <td><a class="tlink" href=${`/review#doc-${d.id}`}>${d.exam_slug}${d.discipline ? ` · ${d.discipline}` : ""}</a></td>
+                <td class="r">${d.stat.pending} de ${d.stat.total} pendentes</td>
+                <td style=${{ width: "130px" }}><${Track} row=${d.stat} /></td>
+              </tr>`
+            )}
+          </tbody></table>
+        </div>`
+      : ""}
+
+    <div class="card">
+      <h3>Documentos ainda não auditados (${untouched.length})</h3>
+      <div class="sub" style=${{ marginBottom: "8px" }}>
+        Ordenados por tamanho — os maiores primeiro.
+      </div>
+      <table class="tbl"><tbody>
+        ${untouched.slice(0, 40).map(
+          (d) => html`<tr key=${d.id}>
+            <td>${d.exam_slug}${d.discipline ? ` · ${d.discipline}` : ""}</td>
+            <td class="r">${d.question_count} questões</td>
+            <td class="r muted">${d.page_count || "?"} pg</td>
+          </tr>`
+        )}
+      </tbody></table>
+      ${untouched.length > 40 &&
+      html`<div class="sub" style=${{ marginTop: "8px" }}>
+        …e mais ${untouched.length - 40}.
+      </div>`}
+    </div>
+  </div>`;
+}
+
+createRoot(document.getElementById("app")).render(html`<${App} />`);
+</script>
+</body>
+</html>

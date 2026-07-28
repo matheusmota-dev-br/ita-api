@@ -4,12 +4,15 @@ from src.etl.transform.constants import (
   MARGIN_BOTTOM,
   MARGIN_LEFT,
   MARGIN_TOP,
+  MIN_CLIP_SIZE,
   OBJECTIVE_BLOCK_END_MARGIN,
   OBJECTIVE_OPTION_LETTERS,
 )
 
 
-def _objective_block_bottom_y(page, clip: pymupdf.Rect, margin: float = OBJECTIVE_BLOCK_END_MARGIN) -> float | None:
+def _objective_block_bottom_y(
+  page, clip: pymupdf.Rect, margin: float = OBJECTIVE_BLOCK_END_MARGIN
+) -> float | None:
   rects = []
   for letter in OBJECTIVE_OPTION_LETTERS:
     rects.extend(page.search_for(f"{letter} (", clip=clip))
@@ -26,14 +29,30 @@ def _clip_to_objective_block_end(page, clip: pymupdf.Rect) -> pymupdf.Rect:
   return pymupdf.Rect(clip.x0, clip.y0, clip.x1, y1_options)
 
 
+def is_renderable(clip: pymupdf.Rect) -> bool:
+  """Um recorte precisa ter área para virar imagem.
+
+  Uma questão que termina exatamente no topo da página seguinte produz um
+  último pedaço de altura zero; o MuPDF rejeita isso com
+  "Invalid bandwriter header dimensions".
+  """
+  return clip.x1 - clip.x0 >= MIN_CLIP_SIZE and clip.y1 - clip.y0 >= MIN_CLIP_SIZE
+
+
 def build_question_rectangles(
   doc,
   positions: list[tuple[int, int, pymupdf.Rect]],
 ) -> dict[int, list[tuple[int, pymupdf.Rect]]]:
   if not positions:
     return {}
-  x0_page = doc[0].rect.x0 + MARGIN_LEFT
-  x1_page = doc[0].rect.x1
+
+  # As páginas de um mesmo PDF podem ter tamanhos diferentes — algumas provas de
+  # pós trazem uma capa digitalizada de 387x72pt seguida de páginas A4. Usar as
+  # dimensões de uma página fixa recortaria o texto de todas as outras.
+  def _bounds(page_no: int) -> tuple[float, float]:
+    page_rect = doc[page_no].rect
+    return page_rect.x0 + MARGIN_LEFT, page_rect.x1
+
   questions: dict[int, list[tuple[int, pymupdf.Rect]]] = {}
   for i, (num, page_no, rect) in enumerate(positions):
     start_page = page_no
@@ -45,6 +64,8 @@ def build_question_rectangles(
     else:
       end_page = start_page
       end_y = doc[start_page].rect.y1
+
+    x0_page, x1_page = _bounds(start_page)
     if start_page == end_page:
       clip = pymupdf.Rect(x0_page, start_y, x1_page, end_y)
       clip = _clip_to_objective_block_end(doc[start_page], clip)
@@ -52,12 +73,22 @@ def build_question_rectangles(
     else:
       questions[num] = []
       pr = doc[start_page].rect
-      questions[num].append((start_page, pymupdf.Rect(x0_page, start_y, x1_page, pr.y1)))
+      questions[num].append(
+        (start_page, pymupdf.Rect(x0_page, start_y, x1_page, pr.y1))
+      )
       for p in range(start_page + 1, end_page):
         pr = doc[p].rect
-        questions[num].append((p, pymupdf.Rect(x0_page, pr.y0, x1_page, pr.y1)))
+        x0_mid, x1_mid = _bounds(p)
+        questions[num].append((p, pymupdf.Rect(x0_mid, pr.y0, x1_mid, pr.y1)))
       pr = doc[end_page].rect
-      clip_last = pymupdf.Rect(x0_page, pr.y0, x1_page, end_y)
+      x0_end, x1_end = _bounds(end_page)
+      clip_last = pymupdf.Rect(x0_end, pr.y0, x1_end, end_y)
       clip_last = _clip_to_objective_block_end(doc[end_page], clip_last)
       questions[num].append((end_page, clip_last))
-  return questions
+
+  # Descarta pedaços sem área e questões que ficaram sem nenhum pedaço válido.
+  return {
+    num: renderable
+    for num, clips in questions.items()
+    if (renderable := [(p, c) for p, c in clips if is_renderable(c)])
+  }

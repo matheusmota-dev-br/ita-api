@@ -28,24 +28,35 @@ OS_ARCH_MAP = {
 }
 
 
-class Discipline(Enum):
+# str, Enum para que os valores sirvam direto como query params da API e como
+# valores de coluna no SQLite.
+class Discipline(str, Enum):
   FISICA = "fisica"
   MATEMATICA = "matematica"
   QUIMICA = "quimica"
   PORTUGUES = "portugues"
   INGLES = "ingles"
+  # Coluna própria nas provas de 2ª fase de 2019–2024.
+  REDACAO = "redacao"
 
 
-class Language(Enum):
+class Language(str, Enum):
   PORTUGUES = "portugues"
   INGLES = "ingles"
 
 
-class TestType(Enum):
+class TestType(str, Enum):
   VESTIBULAR = "vestibular"
   POS = "pos"
 
 
-class FormatType(Enum):
-  ESSAY = "essay"
+class FormatType(str, Enum):
+  """Formato da questão.
+
+  OBJECTIVE = múltipla escolha A–E (1ª fase). DISSERTATIVE = resposta aberta
+  (2ª fase). ESSAY = redação, que não tem numeração de questão.
+  """
+
   OBJECTIVE = "objective"
+  DISSERTATIVE = "dissertative"
+  ESSAY = "essay"
