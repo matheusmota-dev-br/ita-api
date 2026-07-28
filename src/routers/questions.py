@@ -43,6 +43,7 @@ def question_filters(
   has_answer: Annotated[
     bool | None, Query(description="apenas questões com gabarito conhecido")
   ] = None,
+  topic: Annotated[str | None, Query(description="slug do assunto")] = None,
   review_status: Annotated[list[ReviewStatus] | None, Query()] = None,
   order: Order = "year_desc",
 ) -> QuestionFilters:
@@ -58,6 +59,7 @@ def question_filters(
     discipline=discipline or [],
     format_type=format_type,
     has_figure=has_figure,
+    topic=topic,
     has_answer=has_answer,
     review_status=review_status or [],
     order=order,

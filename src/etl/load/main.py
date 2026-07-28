@@ -57,6 +57,7 @@ class LoadStats:
   questions_deleted: int = 0
   questions_renumbered: int = 0
   failed_operations: list[str] = field(default_factory=list)
+  answer_key_conflicts: list[str] = field(default_factory=list)
   skipped: list[str] = field(default_factory=list)
 
   def summary(self) -> str:
@@ -266,6 +267,30 @@ def _apply_answer_keys(session: Session, stats: LoadStats) -> None:
       continue
 
     question = candidates[0]
+
+    # Se um humano já marcou uma correta e o gabarito discorda, a projeção
+    # deixaria duas alternativas com is_correct=1 — e o índice parcial
+    # `UNIQUE(question_id) WHERE is_correct = 1` derruba o load inteiro com
+    # IntegrityError. Pular a questão preserva a decisão humana, que é a palavra
+    # final, e registra o conflito para conferência em vez de escondê-lo.
+    human_correct = next(
+      (
+        alternative
+        for alternative in question.alternatives
+        if alternative.review_status is ReviewStatus.HUMAN_VERIFIED
+        and alternative.is_correct
+      ),
+      None,
+    )
+    if human_correct is not None:
+      if human_correct.letter != entry.correct_letter:
+        stats.answer_key_conflicts.append(
+          f"{question.document.local_path}#{question.number}: "
+          f"gabarito diz {entry.correct_letter}, revisao humana diz "
+          f"{human_correct.letter}"
+        )
+      continue
+
     for alternative in question.alternatives:
       should_be = alternative.letter == entry.correct_letter
       if alternative.review_status is ReviewStatus.HUMAN_VERIFIED:
@@ -543,6 +568,8 @@ def main() -> int:
   # criada, e o `task verify` acusaria a divergência sem dizer a causa.
   for failure in stats.failed_operations:
     print(f"  operacao NAO aplicada: {failure}", file=sys.stderr)
+  for conflict in stats.answer_key_conflicts:
+    print(f"  conflito gabarito x revisao: {conflict}", file=sys.stderr)
   return 0
 
 

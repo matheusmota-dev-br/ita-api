@@ -23,3 +23,33 @@ source = ["src"]
 # instala o trace dentro delas e reporta como "não coberto" código que
 # demonstravelmente executou — os corpos dos endpoints apareciam todos vazios.
 concurrency = ["thread", "greenlet"]
+
+# Fora da medição: código cuja única forma de teste seria simular a API inteira
+# do Selenium WebDriver. Um teste assim passa mesmo com o site redesenhado — ele
+# mede o duplo, não o scraper — então cobri-lo produziria um número alto e
+# nenhuma confiança. O scraper depende de XPaths de uma página com `<frame>` de
+# 2008 e vai quebrar; o que protege contra isso são os PDFs e os `_index.json`
+# congelados em disco, não um mock.
+#
+# A consequência aceita: uma quebra aqui só aparece ao rodar `task extract` de
+# verdade. É o custo de não fingir cobertura.
+omit = [
+  "src/download_chromedriver.py",
+  "src/utils/selenium_elements.py",
+  "src/etl/extract/_webdriver.py",
+  "src/etl/extract/_driver_provas_pos_ita.py",
+  "src/etl/extract/_driver_provas_vestibular_ita.py",
+  "src/etl/extract/_extract_pos.py",
+  "src/etl/extract/_extract_vestibular.py",
+  "src/etl/extract/main.py",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  # Guardas de tipagem: nunca executam em runtime.
+  "if TYPE_CHECKING:",
+  # Blocos marcados como dependentes do ambiente (ex.: pymupdf ausente).
+  "pragma: no cover",
+  # `if __name__ == \"__main__\":` é o entry point do interpretador.
+  "if __name__ == .__main__.:",
+]

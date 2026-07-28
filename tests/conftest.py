@@ -1,3 +1,5 @@
+import os
+
 import pymupdf
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -64,6 +66,28 @@ def create_schema(engine) -> None:
     for statement in FTS_SQL:
       conn.exec_driver_sql(statement)
     conn.commit()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _no_llm_calls():
+  """Impede que qualquer teste chame a API da Anthropic.
+
+  Não é teoria: um teste de `--dry-run` chamou `count_input_tokens` com um
+  cliente real porque só `collect_jobs` estava substituído, e a chave do `.env`
+  foi usada — a requisição chegou a receber um 400 da API.
+
+  Zerar a chave para a sessão inteira transforma qualquer chamada acidental num
+  `MissingApiKey` imediato, em vez de tráfego de rede. Um teste que precise
+  exercitar o cliente substitui `build_client` e `normalize_question`, que é o
+  que os duplos em test_enrich*.py fazem.
+  """
+  import src.config
+
+  original = src.config.settings.anthropic_api_key
+  src.config.settings.anthropic_api_key = None
+  os.environ.pop("ANTHROPIC_API_KEY", None)
+  yield
+  src.config.settings.anthropic_api_key = original
 
 
 @pytest.fixture

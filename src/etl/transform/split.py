@@ -94,11 +94,22 @@ def _detect(lines: list[str]) -> str | None:
   Procurar por "A" e não por qualquer letra evita que um "b)" solto no meio de
   um enunciado defina o estilo do resto.
   """
-  for name, (pattern, _) in STYLES.items():
+  for name, (pattern, allows_inline) in STYLES.items():
     for line in lines:
       match = pattern.match(line)
       if match and match.group(1).upper() == "A":
         return name
+
+    # Em 4 questões do corpus a alternativa A fica na mesma linha do fim do
+    # enunciado ("...pode-se afirmar que A ( ) primeira"). Só vale para os
+    # estilos com delimitador dos dois lados; `A)` no meio de uma frase seria
+    # falso positivo garantido.
+    if not allows_inline:
+      continue
+    for line in lines:
+      for found in INLINE[name].finditer(line):
+        if found.group(1).upper() == "A":
+          return name
   return None
 
 

@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.constants import Discipline, FormatType, TestType
-from src.models import Alternative, Document, Exam, Question
+from src.models import Alternative, Document, Exam, Question, Topic
 from src.models.enums import Phase, ReviewStatus
+from src.models.topic import question_topics
 from src.repositories.search import search_question_ids
 
 
@@ -24,6 +25,10 @@ class QuestionFilters:
   format_type: FormatType | None = None
   has_figure: bool | None = None
   has_answer: bool | None = None
+  # Slug do assunto. Estava documentado no README e não existia: passar
+  # `topic=algebra` era silenciosamente ignorado e devolvia o corpus inteiro, o
+  # que é pior que não ter o filtro — quem consome acha que filtrou.
+  topic: str | None = None
   review_status: list[ReviewStatus] = field(default_factory=list)
   order: str = "year_desc"
 
@@ -55,6 +60,18 @@ def _apply_filters(stmt: Select, filters: QuestionFilters) -> Select:
       .exists()
     )
     stmt = stmt.where(exists if filters.has_answer else ~exists)
+  if filters.topic:
+    # EXISTS em vez de JOIN: uma questão pode ter vários assuntos, e o join
+    # duplicaria a linha, inflando o `total` da paginação.
+    stmt = stmt.where(
+      select(question_topics.c.question_id)
+      .join(Topic, Topic.id == question_topics.c.topic_id)
+      .where(
+        question_topics.c.question_id == Question.id,
+        Topic.slug == filters.topic.strip().lower(),
+      )
+      .exists()
+    )
   return stmt
 
 

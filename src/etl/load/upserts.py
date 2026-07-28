@@ -117,6 +117,11 @@ def upsert_question(
   if unchanged:
     return question, False
 
+  # Lido antes do `session.add`: se `exam` estiver expirado, `exam.id` dispara um
+  # SELECT, o SELECT dispara autoflush, e o autoflush tentaria gravar a questão
+  # recém-adicionada com `exam_id` ainda nulo — NOT NULL, IntegrityError.
+  exam_id = exam.id
+
   if question is None:
     question = Question(document_id=document.id, number=entry["number"])
     session.add(question)
@@ -125,7 +130,7 @@ def upsert_question(
   if question.review_status is ReviewStatus.HUMAN_VERIFIED:
     return question, False
 
-  question.exam_id = exam.id
+  question.exam_id = exam_id
   question.format_type = FormatType(entry["format_type"])
   question.statement_raw = statement_raw
   question.page_start = entry["page_start"]
@@ -146,15 +151,19 @@ def replace_question_pages(
   session: Session, question: Question, parts: list[dict]
 ) -> None:
   """Substitui os pedaços de uma questão. Só é chamado quando o conteúdo mudou."""
-  for page in list(question.pages):
-    session.delete(page)
+  # `clear()` em vez de `session.delete` linha a linha: o cascade
+  # `delete-orphan` apaga as linhas, e a coleção fica coerente. Deletar pela
+  # sessão remove do banco mas deixa o objeto na coleção em memória.
+  question.pages.clear()
   session.flush()
 
   for part in parts:
     bbox = part["bbox"]
-    session.add(
+    # Pela relação, não por `session.add` com o `question_id` cru: o add insere a
+    # linha mas deixa `question.pages` desatualizada, e quem inspecionar a
+    # coleção logo depois a vê vazia.
+    question.pages.append(
       QuestionPage(
-        question_id=question.id,
         part_index=part["part_index"],
         page_no=part["page_no"],
         x0=bbox[0],
@@ -173,8 +182,7 @@ def replace_question_assets(
   parts: list[dict],
   media_prefix: str,
 ) -> None:
-  for asset in list(question.assets):
-    session.delete(asset)
+  question.assets.clear()
   session.flush()
 
   for part in parts:
@@ -183,10 +191,9 @@ def replace_question_assets(
     bbox = part["bbox"]
     relative = f"{media_prefix}/{part['image']}"
     size = png_size(settings.media_root / relative)
-    session.add(
+    question.assets.append(
       Asset(
         kind=AssetKind.QUESTION_CROP,
-        question_id=question.id,
         relative_path=relative,
         page_no=part["page_no"],
         bbox=bbox,
