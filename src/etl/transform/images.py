@@ -7,8 +7,8 @@ from src.etl.transform.intervals import non_question_intervals_on_page
 from src.etl.transform.pages import is_draft_page, is_essay_page
 from src.etl.transform.paths import (
   get_non_questions_figs_dir,
-  get_questions_figs_dir,
   get_question_regions_pdf_path,
+  get_questions_figs_dir,
 )
 
 REGIONS_STROKE_COLOR = (1.0, 0.0, 0.0)
