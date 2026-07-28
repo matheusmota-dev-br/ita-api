@@ -7,11 +7,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.config import ensure_sqlite_dir, settings
+from src.config import PROJECT_ROOT, ensure_sqlite_dir, settings
 from src.constants import Discipline
-from src.etl.load.decisions import load_decisions
+from src.etl.load.decisions import (
+  OP_CREATE,
+  OP_DELETE,
+  load_decisions,
+  load_operations,
+)
+from src.etl.load.manual import build_manual_question, render_manual_crop
 from src.etl.load.reader import LoadedDocument, iter_processed
 from src.etl.load.upserts import (
   ensure_alternatives,
@@ -22,6 +29,7 @@ from src.etl.load.upserts import (
   upsert_exam,
   upsert_question,
 )
+from src.etl.transform.crop import CropError
 from src.etl.transform.paths import ENRICHED_SUBDIR
 from src.models import Document, Question, Topic
 from src.models.enums import DisciplineSource, ReviewStatus
@@ -43,6 +51,10 @@ class LoadStats:
   disciplines_from_answer_key: int = 0
   decisions_applied: int = 0
   orphan_decisions: int = 0
+  questions_created: int = 0
+  questions_deleted: int = 0
+  questions_renumbered: int = 0
+  failed_operations: list[str] = field(default_factory=list)
   skipped: list[str] = field(default_factory=list)
 
   def summary(self) -> str:
@@ -141,6 +153,10 @@ def _load_questions(session: Session, doc: LoadedDocument, stats: LoadStats) -> 
   exam = upsert_exam(session, manifest)
   document = upsert_document(session, exam, manifest)
   media_prefix = f"{MEDIA_PREFIX_ROOT}/{doc.directory.name}"
+  # A coluna existia e nunca era preenchida. A interface precisa dela para
+  # saber onde gravar o recorte de uma questão criada à mão, e derivar o slug
+  # de novo a partir do nome do PDF exigiria o `_index.json` do extract.
+  document.processed_dir = media_prefix
 
   for entry in manifest.get("questions", []):
     statement = _read_statement(doc.directory, entry)
@@ -235,6 +251,97 @@ def _apply_decision_bbox(question: Question, bbox: dict | None) -> None:
   question.page_end = max(p.page_no for p in question.pages)
 
 
+def _replay_operations(session: Session, stats: LoadStats) -> None:
+  """Reexecuta criar / excluir / renumerar, na ordem em que foram registradas.
+
+  Roda **antes** das decisões por questão, porque define quais questões existem
+  e sob que número — e a chave de uma decisão é justamente (caminho, número).
+  Inverter a ordem faria uma correção de texto procurar uma questão que a
+  renumeração ainda não tinha movido.
+
+  A ordem entre operações também importa: renumerar 5→6 e depois 6→7 não é o
+  mesmo que o contrário, por isso a lista é cronológica e não um mapa.
+  """
+  operations = load_operations()
+  if not operations:
+    return
+
+  by_path: dict[str, Document] = {
+    document.local_path: document for document in session.scalars(select(Document))
+  }
+  for op in operations:
+    document = by_path.get(op["local_path"])
+    if document is None:
+      stats.failed_operations.append(
+        f"{op['op']}: documento ausente ({op['local_path']})"
+      )
+      continue
+    try:
+      _replay_one(session, document, op, stats)
+    except (CropError, OSError, IntegrityError) as exc:
+      session.rollback()
+      stats.failed_operations.append(
+        f"{op['op']} {op['local_path']}#{op['number']}: {exc}"
+      )
+  session.flush()
+
+
+def _find(session: Session, document: Document, number: int) -> Question | None:
+  return session.scalars(
+    select(Question).where(
+      Question.document_id == document.id, Question.number == number
+    )
+  ).one_or_none()
+
+
+def _replay_one(
+  session: Session, document: Document, op: dict, stats: LoadStats
+) -> None:
+  number = op["number"]
+  existing = _find(session, document, number)
+
+  if op["op"] == OP_DELETE:
+    if existing is not None:
+      session.delete(existing)
+      stats.questions_deleted += 1
+    return
+
+  if op["op"] == OP_CREATE:
+    if existing is not None:
+      # O transform passou a detectar a questão que antes foi criada à mão.
+      # A detecção vence: é reproduzível, o retângulo manual não precisa mais.
+      return
+    pdf_path = Path(document.local_path)
+    if not pdf_path.is_absolute():
+      pdf_path = PROJECT_ROOT / pdf_path
+    crop, relative = render_manual_crop(pdf_path, document, number, op["bbox"])
+    session.add(build_manual_question(document, number, op["bbox"], crop, relative))
+    session.flush()
+    stats.questions_created += 1
+    return
+
+  # renumerar
+  if existing is None:
+    stats.failed_operations.append(f"renumber: {document.local_path}#{number} ausente")
+    return
+  target = op["to"]
+  occupant = _find(session, document, target)
+  if occupant is not None:
+    # UNIQUE(document_id, number) recusaria o estado intermediário em que as
+    # duas têm o mesmo número, daí o desvio por um número negativo — e um flush
+    # por etapa, porque um flush único emitiria os UPDATE numa ordem que já
+    # passaria pelo estado proibido.
+    occupant.number = -abs(number)
+    session.flush()
+    existing.number = target
+    session.flush()
+    occupant.number = number
+  else:
+    existing.number = target
+  session.flush()
+  stats.questions_renumbered += 1
+
+
 def _apply_review_decisions(session: Session, stats: LoadStats) -> None:
   """Reaplica a revisão humana registrada em data/review/decisions.json.
 
@@ -326,6 +433,9 @@ def run_load(*, processed_root: Path | None = None, verbose: bool = True) -> Loa
         print(f"  {doc.slug}")
 
     _apply_answer_keys(session, stats)
+    # Antes das decisões por questão: define quais questões existem e sob que
+    # número, e a chave de uma decisão é (caminho, número).
+    _replay_operations(session, stats)
     _apply_review_decisions(session, stats)
     _refresh_search_blobs(session)
     session.commit()
@@ -372,6 +482,21 @@ def main() -> int:
     print(f"decisoes de revisao reaplicadas: {stats.decisions_applied}")
   if stats.orphan_decisions:
     print(f"decisoes sem questao correspondente: {stats.orphan_decisions}")
+  structural = (
+    stats.questions_created,
+    stats.questions_deleted,
+    stats.questions_renumbered,
+  )
+  if any(structural):
+    print(
+      "operacoes manuais reaplicadas: "
+      f"{structural[0]} criadas, {structural[1]} excluidas, "
+      f"{structural[2]} renumeradas"
+    )
+  # Falhar em silêncio aqui reintroduziria a questão excluída ou perderia a
+  # criada, e o `task verify` acusaria a divergência sem dizer a causa.
+  for failure in stats.failed_operations:
+    print(f"  operacao NAO aplicada: {failure}", file=sys.stderr)
   return 0
 
 

@@ -138,6 +138,79 @@ async def review_progress(session: AsyncSession) -> dict[str, int]:
   }
 
 
+def _status_columns() -> list:
+  """As três contagens de estado, para reusar em qualquer agrupamento."""
+  return [
+    func.count().label("total"),
+    func.sum(
+      func.iif(Question.review_status == ReviewStatus.HUMAN_VERIFIED, 1, 0)
+    ).label("reviewed"),
+    func.sum(func.iif(Question.review_status == ReviewStatus.REJECTED, 1, 0)).label(
+      "rejected"
+    ),
+    func.sum(func.iif(Question.needs_llm.is_(True), 1, 0)).label("needs_llm"),
+    func.sum(
+      func.iif(
+        func.length(func.trim(func.coalesce(Question.statement_raw, ""))) == 0, 1, 0
+      )
+    ).label("empty_text"),
+  ]
+
+
+def _bucket(row, label: str) -> dict:
+  total, reviewed, rejected, needs_llm, empty_text = row[1:]
+  return {
+    "label": label,
+    "total": total or 0,
+    "reviewed": int(reviewed or 0),
+    "rejected": int(rejected or 0),
+    "pending": (total or 0) - int(reviewed or 0) - int(rejected or 0),
+    "needs_llm": int(needs_llm or 0),
+    "empty_text": int(empty_text or 0),
+  }
+
+
+async def progress_breakdown(session: AsyncSession) -> dict:
+  """Progresso da auditoria fatiado por tipo, ano, fase e matéria.
+
+  O painel existe para responder "por onde continuar": a contagem global diz
+  quanto falta, mas não onde. Cada corte é uma consulta agregada, não N
+  consultas por grupo, senão a página levaria segundos para abrir.
+  """
+
+  async def group_by(column, formatter=str) -> list[dict]:
+    stmt = (
+      select(column, *_status_columns())
+      .select_from(Question)
+      .join(Exam, Exam.id == Question.exam_id)
+      .group_by(column)
+      .order_by(column)
+    )
+    return [
+      _bucket(row, formatter(row[0]) if row[0] is not None else "sem")
+      for row in await session.execute(stmt)
+    ]
+
+  by_document_stmt = (
+    select(Document.id, *_status_columns())
+    .select_from(Question)
+    .join(Document, Document.id == Question.document_id)
+    .group_by(Document.id)
+  )
+  documents = {
+    row[0]: _bucket(row, str(row[0])) for row in await session.execute(by_document_stmt)
+  }
+
+  return {
+    "overall": await review_progress(session),
+    "by_test_type": await group_by(Exam.test_type, lambda v: v.value),
+    "by_year": await group_by(Exam.year),
+    "by_phase": await group_by(Exam.phase, lambda v: v.value),
+    "by_discipline": await group_by(Question.discipline, lambda v: v.value),
+    "by_document": documents,
+  }
+
+
 async def document_answers(session: AsyncSession, document_id: int) -> list[dict]:
   """Respostas parseadas de um gabarito, para conferir contra o PDF."""
   stmt = (

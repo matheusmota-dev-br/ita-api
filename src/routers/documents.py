@@ -14,6 +14,7 @@ from src.repositories.documents import (
   document_question_ids,
   get_document,
   list_documents,
+  progress_breakdown,
   review_progress,
 )
 from src.schemas.document import DocumentOut, ReviewProgress
@@ -43,6 +44,14 @@ async def progress_endpoint(
   session: Annotated[AsyncSession, Depends(get_db)],
 ) -> ReviewProgress:
   return ReviewProgress(**await review_progress(session))
+
+
+@router.get("/progress/detalhado", response_model=dict)
+async def progress_detail_endpoint(
+  session: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+  """Progresso fatiado por tipo, ano, fase, matéria e documento."""
+  return await progress_breakdown(session)
 
 
 @router.get("/{document_id}/questions", response_model=list[int])

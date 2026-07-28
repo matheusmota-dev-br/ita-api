@@ -46,10 +46,37 @@ FTS_SQL = [
 
 
 @pytest.fixture
-def api(tmp_path, monkeypatch):
+def review_paths(tmp_path, monkeypatch):
+  """Redireciona a persistência da revisão para o tmp do teste.
+
+  Sem isto, qualquer teste que exercite um endpoint de revisão escreve no
+  `data/review/decisions.json` de verdade — que é versionado e é a fonte da
+  auditoria. Fica no fixture, e não em cada teste, porque depender de o autor
+  do teste lembrar é o que já tinha falhado antes.
+  """
+  decisions = tmp_path / "review" / "decisions.json"
+  monkeypatch.setattr("src.etl.load.decisions.DECISIONS_PATH", decisions)
+  monkeypatch.setattr(
+    "src.etl.load.decisions.AUDIT_PATH", decisions.parent / "audit.jsonl"
+  )
+  return decisions
+
+
+@pytest.fixture
+def api(tmp_path, monkeypatch, review_paths):
   db_path = tmp_path / "test.db"
   media_root = tmp_path / "media"
   (media_root / "crops").mkdir(parents=True)
+
+  # PDF real: os endpoints de recorte rasterizam o documento de origem, então
+  # um caminho fictício faria o teste exercitar só o caminho de erro.
+  source_pdf = tmp_path / "prova.pdf"
+  doc = pymupdf.open()
+  for index in range(2):
+    page = doc.new_page(width=595, height=842)
+    page.insert_text((56, 60), f"Questao {index + 1}. Enunciado de teste.", fontsize=11)
+  doc.save(str(source_pdf))
+  doc.close()
   # PNG 1x1 válido, para o endpoint de imagem ter o que servir.
   png = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
@@ -74,8 +101,10 @@ def api(tmp_path, monkeypatch):
       exam_id=exam.id,
       kind=DocumentKind.PROVA,
       source_column="prova_1f",
-      local_path="data/x.pdf",
+      local_path=str(source_pdf),
       sha256="abc",
+      page_count=2,
+      processed_dir="processed/teste",
     )
     session.add(document)
     session.flush()
@@ -135,7 +164,9 @@ def api(tmp_path, monkeypatch):
         )
     session.commit()
 
-  monkeypatch.setattr("src.routers.questions.settings.media_root", media_root)
+  # `settings` é o mesmo objeto em todos os módulos, então mexer no atributo
+  # redireciona também o que os endpoints de recorte gravam.
+  monkeypatch.setattr("src.config.settings.media_root", media_root)
 
   from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 

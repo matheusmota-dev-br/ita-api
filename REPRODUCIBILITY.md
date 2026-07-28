@@ -162,7 +162,11 @@ Uma decisão é chaveada por `(caminho do PDF, número da questão)` — legíve
 estável entre reconstruções, ao contrário do `questions.id`, que é
 autoincremento e muda a cada `--rebuild`.
 
-Quatro tipos de intervenção são registrados:
+O `decisions.json` tem duas seções, porque são duas categorias com regras de
+replay diferentes.
+
+**`questions`** — decisões *sobre* uma questão que existe, mescladas campo a
+campo:
 
 | Campo | Efeito no reload |
 |---|---|
@@ -170,6 +174,27 @@ Quatro tipos de intervenção são registrados:
 | `needs_llm` | Override da triagem: força ou dispensa o enrich naquela questão. |
 | `statement_markdown` / `alternatives` | Texto corrigido à mão, reaplicado como `human_verified`. |
 | `bbox` | Recorte corrigido. O PNG é regerado no momento da correção; o reload realinha as linhas do banco. |
+
+**`operations`** — decisões que mudam *quais* questões existem. É uma lista
+ordenada, não um mapa, porque o resultado depende da ordem: renumerar 5→6 e
+depois 6→7 não é o mesmo que o contrário.
+
+| Operação | Efeito no reload |
+|---|---|
+| `create` | Recria a questão a partir do retângulo. O PNG é regerado do bbox, nunca lido do disco, para que o artefato corresponda à decisão registrada. |
+| `delete` | Remove a questão. O PNG fica em disco — apagar arquivo é irreversível e um recorte órfão não custa nada. |
+| `renumber` | Move o número, trocando com a ocupante se houver. |
+
+> **Renumerar move a própria chave da decisão.** A chave é `(caminho, número)`,
+> então uma questão corrigida à mão como nº 5 que vira nº 6 perderia a correção
+> se a chave ficasse para trás. O registro da operação migra as duas coisas
+> juntas, e o replay roda **antes** das decisões por questão exatamente por
+> isso.
+
+Uma questão criada à mão nasce `human_verified`: veio de alguém apontando o
+retângulo, então não faz sentido pedir que outra pessoa a aprove depois. Se o
+transform passar a detectá-la sozinho, a detecção vence — ela é reproduzível e
+o retângulo manual deixa de ser necessário.
 
 **Por que isso importa para quem reproduz:** quem clonar o repositório e rodar
 o pipeline obtém automaticamente as mesmas correções, sem repetir a auditoria.

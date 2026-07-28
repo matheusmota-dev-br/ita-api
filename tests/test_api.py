@@ -51,7 +51,7 @@ async def test_detail_includes_alternatives_and_source(api):
     assert body["statement_raw"].startswith("Seja z")
     assert [a["letter"] for a in body["alternatives"]] == list("ABCDE")
     assert [a["letter"] for a in body["alternatives"] if a["is_correct"]] == ["C"]
-    assert body["source"]["local_path"] == "data/x.pdf"
+    assert body["source"]["local_path"].endswith("prova.pdf")
 
 
 async def test_random_route_precedes_id_route(api):

@@ -152,21 +152,43 @@ A busca usa FTS5 com `remove_diacritics`, então `funcao` encontra `função`.
 task review          # http://localhost:8000/review
 ```
 
-Três painéis: documentos → questões → detalhe. Para cada questão você vê o
-recorte em PNG, a página original com **as regiões detectadas desenhadas por
-cima** (azul = a questão selecionada, vermelho = as demais), o texto bruto, o
-enunciado normalizado e as alternativas com o gabarito marcado. Documentos de
-gabarito abrem num painel próprio, com as respostas parseadas coluna a coluna
-ao lado do PDF.
+Três painéis: documentos → questões → detalhe. A lista de documentos filtra por
+tipo, ano, fase, matéria e prova/gabarito, e o topo mostra o progresso global e
+o do documento atual numa linha só. `/review/progresso` abre o painel detalhado,
+com o corte por tipo, matéria, fase e ano, mais a lista de documentos ainda não
+auditados ordenada por tamanho — a resposta para "por onde continuar".
 
-Quatro tipos de intervenção, todos persistidos:
+O detalhe põe **o recorte e o texto bruto lado a lado**, e os campos de
+transcrição logo abaixo. Mais adiante na página fica a imagem da página inteira
+com as regiões detectadas desenhadas por cima (azul = a questão selecionada,
+vermelho = as demais). Gabaritos abrem num painel próprio, com as respostas
+parseadas coluna a coluna ao lado do PDF.
+
+Sete tipos de intervenção, todos persistidos:
 
 | Ação | Efeito |
 |---|---|
 | **Aprovar / rejeitar** | Define `review_status`. `human_verified` blinda a linha contra o upsert e contra o LLM. |
 | **Precisa / dispensa LLM** | Override da triagem automática, por questão. |
-| **Corrigir o texto** | Edita enunciado e alternativas em Markdown/LaTeX. Salvar já marca como revisada e dispensa o LLM — consertar à mão é o caminho mais barato. |
-| **Ajustar o recorte** | Arraste sobre a página para redesenhar a região. O PNG é regerado na hora e o texto reextraído do novo retângulo. |
+| **Corrigir o texto** | Edita enunciado e alternativas em Markdown com LaTeX. Salvar já marca como revisada e dispensa o LLM — consertar à mão é o caminho mais barato. |
+| **Ajustar o recorte** | Arraste sobre a página. A seleção fica marcada e é ajustável pelas oito alças até você aplicar; o PNG é regerado e o texto reextraído do novo retângulo. |
+| **Criar questão** | Marque a região e crie. Serve para o que a detecção não pegou; nasce `human_verified`. |
+| **Excluir questão** | Remove o que a detecção inventou. |
+| **Renumerar** | Muda o número; se o destino existir, as duas trocam. |
+
+**Auto-preencher.** O botão *Preencher do texto bruto* separa enunciado e
+alternativas sem chamar LLM — os marcadores foram medidos no corpus (`A ( )`
+cobre 54%, e as alternativas curtas vêm todas numa linha só). Fecha as cinco em
+58% das questões com texto. É uma sugestão: só preenche campo vazio, e uma
+questão discursiva com itens a)–e) é indistinguível de uma objetiva pelo texto,
+então confira contra o recorte ao lado antes de salvar.
+
+**Equações.** O enunciado aceita `$x^2$` inline e `$$...$$` em bloco, com
+preview ao vivo ao lado e uma barra de atalhos para os símbolos que aparecem nas
+provas. A renderização usa [temml](https://temml.org), vendorizado: converte
+LaTeX em MathML e deixa o navegador desenhar, o que custa um arquivo de 240 KB
+em vez do ~1 MB de fontes que o KaTeX exigiria. `![figura](caminho)` também
+funciona.
 
 | Tecla | |
 |---|---|
@@ -181,7 +203,7 @@ a um `task db-rebuild`, que apaga o `.db` inteiro:
 
 | Arquivo | |
 |---|---|
-| `data/review/decisions.json` | Estado final por questão. É o que o load aplica. |
+| `data/review/decisions.json` | Estado final por questão, mais a lista ordenada de criar/excluir/renumerar. É o que o load aplica. |
 | `data/review/audit.jsonl` | Trilha append-only: cada ação, com o antes e o depois. |
 | `data/review/baseline.json` | Contagens esperadas e o ambiente que as produziu. |
 
