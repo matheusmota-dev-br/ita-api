@@ -1,0 +1,56 @@
+[
+  {
+    "year": "2024",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2024_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2024.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2024_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2024_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2024_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2024_2f.pdf"
+  },
+  {
+    "year": "2023",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2023_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2023.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2023_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2023_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2023_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2023_2f.pdf"
+  },
+  {
+    "year": "2022",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2022_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2022.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2022_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2022_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2022_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2022_2f.pdf"
+  },
+  {
+    "year": "2021",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2021_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2021.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2021_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2021_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2021_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2021_2f.pdf"
+  },
+  {
+    "year": "2020",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2020_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2020.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2020_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2020_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2020_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2020_2f.pdf"
+  },
+  {
+    "year": "2019",
+    "prova_1f": "https://www.vestibular.ita.br/provas/2019_fase1.pdf",
+    "answer_key_1f": "https://www.vestibular.ita.br/provas/gabarito_2019.pdf",
+    "matematica": "https://www.vestibular.ita.br/provas/matematica_2019_2f.pdf",
+    "fisica": "https://www.vestibular.ita.br/provas/fisica_2019_2f.pdf",
+    "quimica": "https://www.vestibular.ita.br/provas/quimica_2019_2f.pdf",
+    "redacao": "https://www.vestibular.ita.br/provas/redacao_2019_2f.pdf"
+  }
+]

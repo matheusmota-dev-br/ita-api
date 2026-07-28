@@ -1,0 +1,1046 @@
+{
+  "prova_ita_vestibular_2008_answer_key.pdf": {
+    "byte_size": 18264,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2008_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "1cf1487350064e64942c77d04379b1b6ebbe7633ba7a8bca24aa636b6a4c0faf",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2008_fisica.pdf": {
+    "byte_size": 319643,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2008_fisica.pdf",
+    "format_index": 1,
+    "sha256": "712700da307f5e9f14aabb1eba798f173a4e92df5014c10e299afd8ec04d90e1",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2008_ingles.pdf": {
+    "byte_size": 181966,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2008_ingles.pdf",
+    "format_index": 1,
+    "sha256": "22cdbd6a98f88c9e96082e94c1d318c0bb54946e9b3286a466ead0c7e41206b9",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2008_matematica.pdf": {
+    "byte_size": 89347,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2008_matematica.pdf",
+    "format_index": 1,
+    "sha256": "0f87c14292941fb229378bbe4c73f919e92b3e1285dfa21dbae77d8235e0f8b2",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2008_portugues.pdf": {
+    "byte_size": 243440,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2008_portugues.pdf",
+    "format_index": 1,
+    "sha256": "aadd59ed6a09b84b61e916899b124d0955647cb16994adf59d80371dc1d9ce08",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2008_quimica.pdf": {
+    "byte_size": 159832,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2008_quimica.pdf",
+    "format_index": 1,
+    "sha256": "a6586b8380619f21e701b6500296260b3dfc918d966b0ac363b0fc0bc0794fe3",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2008.pdf",
+    "year": "2008"
+  },
+  "prova_ita_vestibular_2009_answer_key.pdf": {
+    "byte_size": 17879,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2009_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "ce816669444e52f8a14a184e4249b539a594b9e7338361c56d08d87c0cdddc7e",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2009_fisica.pdf": {
+    "byte_size": 679678,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2009_fisica.pdf",
+    "format_index": 1,
+    "sha256": "cdf8f161deb24e5492482488142d14fc43aac12d46f2abd398baffb0fd6e1a8f",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2009_ingles.pdf": {
+    "byte_size": 469580,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2009_ingles.pdf",
+    "format_index": 1,
+    "sha256": "801c00167dd49b4e3b39f535e2a1e2675d21c2b9359610ae281b682a93d5ed75",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2009_matematica.pdf": {
+    "byte_size": 85871,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2009_matematica.pdf",
+    "format_index": 1,
+    "sha256": "cc1d8e8f01463d71c3af6cb56b3b385b76a6e81247ba16ac7cd96331331f73de",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2009_portugues.pdf": {
+    "byte_size": 242203,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2009_portugues.pdf",
+    "format_index": 1,
+    "sha256": "fad441512d9d3ad301d5853efbd02af385aa42e8cf3ae0628f4281d5ad2d9649",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2009_quimica.pdf": {
+    "byte_size": 154371,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2009_quimica.pdf",
+    "format_index": 1,
+    "sha256": "968ff92f1a067510792597cb6d8080268fbb9778c5c2c54e1377c1226159d67b",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2009.pdf",
+    "year": "2009"
+  },
+  "prova_ita_vestibular_2010_answer_key.pdf": {
+    "byte_size": 36697,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2010_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "539c381b67a28aff2932e1f694ecbf81cd2e4ccda442c85249fd67ee6a54e6df",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2010_fisica.pdf": {
+    "byte_size": 473068,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2010_fisica.pdf",
+    "format_index": 1,
+    "sha256": "a2fb1aa669707f2cc8cbe13752e73f22d54d03ad98fcfa047f230e6756c98c90",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2010_ingles.pdf": {
+    "byte_size": 2004839,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2010_ingles.pdf",
+    "format_index": 1,
+    "sha256": "a62400f7f7019799291b87e960450ba2f372e5bea8ac6c21a795bfd07960cf58",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2010_matematica.pdf": {
+    "byte_size": 86920,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2010_matematica.pdf",
+    "format_index": 1,
+    "sha256": "66e33d76cbbe9a61a79ac42751508663c5fde3d0442abd5a00770f4e8752fe4a",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2010_portugues.pdf": {
+    "byte_size": 426441,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2010_portugues.pdf",
+    "format_index": 1,
+    "sha256": "d7c28764c8e249c41c442300a25be1a4942c94a2375b402a21f7f0da1142b491",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2010_quimica.pdf": {
+    "byte_size": 56931,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2010_quimica.pdf",
+    "format_index": 1,
+    "sha256": "3a70b5a439fb36ec7fc3e430d6a7adf0631d0662b685210bf0eef58fc2690ffe",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2010.pdf",
+    "year": "2010"
+  },
+  "prova_ita_vestibular_2011_answer_key.pdf": {
+    "byte_size": 36840,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2011_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "4d803f02c15dff12bebe71e00be8f94303abd9d2dec7435cafd0e8e51f5efac6",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2011_fisica.pdf": {
+    "byte_size": 422788,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2011_fisica.pdf",
+    "format_index": 1,
+    "sha256": "98815cf29e745c48a2b48240df79dc7ce8a89532452fc7171b55e6fd72c2fe35",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2011_ingles.pdf": {
+    "byte_size": 1191902,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2011_ingles.pdf",
+    "format_index": 1,
+    "sha256": "effaac9846876ff82df894eef5c9f17e3d7c3b35f82ce815885b5f5474783f6f",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2011_matematica.pdf": {
+    "byte_size": 91905,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2011_matematica.pdf",
+    "format_index": 1,
+    "sha256": "37243e5c6431c0092ba9ca4eb00eefd9213d77cd12e12a3a078a9c5a4ea63a28",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2011_portugues.pdf": {
+    "byte_size": 186262,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2011_portugues.pdf",
+    "format_index": 1,
+    "sha256": "0d56b59a6a9faf11d2b6ba7388605a4ffc20bafefb07c3a1d0483beb1ef9111b",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2011_quimica.pdf": {
+    "byte_size": 115939,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2011_quimica.pdf",
+    "format_index": 1,
+    "sha256": "a63d9800b349a8d8ceddb570e6e334691ef6d84c2168df71483c5f1a32577429",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2011.pdf",
+    "year": "2011"
+  },
+  "prova_ita_vestibular_2012_answer_key.pdf": {
+    "byte_size": 17352,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2012_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "e5e46fc6d5841a60becca42d85f140f8c564b4b1e551116b098da2b8ef81abac",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2012_fisica.pdf": {
+    "byte_size": 96934,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2012_fisica.pdf",
+    "format_index": 1,
+    "sha256": "b8c60e607185a8627f36678b88323ddf6a2172fed7834545a687b599aa7be7a4",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2012_ingles.pdf": {
+    "byte_size": 446135,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2012_ingles.pdf",
+    "format_index": 1,
+    "sha256": "1734590317b80ede811a8acb284738dd1fea81edcf8503dea7a1f6a87e7047eb",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2012_matematica.pdf": {
+    "byte_size": 88224,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2012_matematica.pdf",
+    "format_index": 1,
+    "sha256": "c285dad35ef5080d20b2208ed48fec8b47755d337f53e943a6ee9cab7b41a060",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2012_portugues.pdf": {
+    "byte_size": 309118,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2012_portugues.pdf",
+    "format_index": 1,
+    "sha256": "86f8ea3c176ab9a35a1296039fe2588ce8e7ee89d07148de8ae5d820ee53e277",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2012_quimica.pdf": {
+    "byte_size": 159147,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2012_quimica.pdf",
+    "format_index": 1,
+    "sha256": "6c6aca44032fc572297c21a6b4700bd53a4cd0c1cb41eef934b0ee96f8d3a04e",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2012.pdf",
+    "year": "2012"
+  },
+  "prova_ita_vestibular_2013_answer_key.pdf": {
+    "byte_size": 17939,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2013_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "dcd826170883795678f576666ea6e622c64cae7e3ac06c9ea68baa4434635518",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2013_fisica.pdf": {
+    "byte_size": 111139,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2013_fisica.pdf",
+    "format_index": 1,
+    "sha256": "2d270b8980cfbc8e8be690eff8caa6cb2ec50ec6a8d53ff1825ccbe995bdca4a",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2013_ingles.pdf": {
+    "byte_size": 375274,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2013_ingles.pdf",
+    "format_index": 1,
+    "sha256": "e8d8ae69a4d8586b064a750eadc5c4b1a03dce264e0c8014af7d745ace3b91f0",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2013_matematica.pdf": {
+    "byte_size": 96403,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2013_matematica.pdf",
+    "format_index": 1,
+    "sha256": "1e6635c2360076a0011ec50cbb0d30a9a9c8f09bc01e3cda9ff0c246bad4f7bb",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2013_portugues.pdf": {
+    "byte_size": 588391,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2013_portugues.pdf",
+    "format_index": 1,
+    "sha256": "5d2c8f2e6b567729acbb58bccc6e494b0825d328786226e0ff7ec6d3ee14a8c8",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2013_quimica.pdf": {
+    "byte_size": 203409,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2013_quimica.pdf",
+    "format_index": 1,
+    "sha256": "5820f4849afaf024030c4ade4b32c613f43def4fb17995709e60f82c99dde9e1",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2013.pdf",
+    "year": "2013"
+  },
+  "prova_ita_vestibular_2014_answer_key.pdf": {
+    "byte_size": 66932,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2014_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "7c43952d3dbe0c8f76fbcc59e495f4fd41742bb4c12ec619da60f59774432a45",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2014_fisica.pdf": {
+    "byte_size": 120468,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2014_fisica.pdf",
+    "format_index": 1,
+    "sha256": "415194f577be8a6ea4d322f41e07ebd82cd720442c915467ff79a2fac98cdfa8",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2014_ingles.pdf": {
+    "byte_size": 248365,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2014_ingles.pdf",
+    "format_index": 1,
+    "sha256": "b9cd10217f6d22f8c3beda37f7138901344d84886d41f64ad1dcbbef93067960",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2014_matematica.pdf": {
+    "byte_size": 95659,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2014_matematica.pdf",
+    "format_index": 1,
+    "sha256": "443ea203b2b0bf994ea82cd5e2ab32e471d086b719af6ca0a9688fdbd54e0bb3",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2014_portugues.pdf": {
+    "byte_size": 89227,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2014_portugues.pdf",
+    "format_index": 1,
+    "sha256": "b95860fd29b95887fc9a90196d92b915169971d863cd980db5413b6ba91223c9",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2014_quimica.pdf": {
+    "byte_size": 107895,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2014_quimica.pdf",
+    "format_index": 1,
+    "sha256": "f403e8d44d57e4c87c9fc2d070853940c1d405bcedfbc4d3fd3c82aa5bdd335f",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2014.pdf",
+    "year": "2014"
+  },
+  "prova_ita_vestibular_2015_answer_key.pdf": {
+    "byte_size": 18043,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2015_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "db2787dd392126be2e072d191fda37c76704b526ba50001052174f9331586a6d",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2015_fisica.pdf": {
+    "byte_size": 97460,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2015_fisica.pdf",
+    "format_index": 1,
+    "sha256": "ba094e6f24eb1c67490026e7190f343fb927f3e83d897771c0eaded698544cc0",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2015_ingles.pdf": {
+    "byte_size": 165087,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2015_ingles.pdf",
+    "format_index": 1,
+    "sha256": "70eb5b118d2d74477572e3a6073208dc9ce7ba9b62fb9fc2b0b898ca977907e2",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2015_matematica.pdf": {
+    "byte_size": 144498,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2015_matematica.pdf",
+    "format_index": 1,
+    "sha256": "855fe3f4f24a3e96320eb4ead223533fa971b9542b3d1a632937f5a265256f05",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2015_portugues.pdf": {
+    "byte_size": 236104,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2015_portugues.pdf",
+    "format_index": 1,
+    "sha256": "d66beef457b320b48495e49284d3836ecdd5ed4cd58b09ed428fff710d40d996",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2015_quimica.pdf": {
+    "byte_size": 212824,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2015_quimica.pdf",
+    "format_index": 1,
+    "sha256": "03a1ee7c429a88b5ff2fb8993abbe076caa7bbe945880eb4440b8e99aa76bdab",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2015.pdf",
+    "year": "2015"
+  },
+  "prova_ita_vestibular_2016_answer_key.pdf": {
+    "byte_size": 18020,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2016_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "82b8e2afce8a131a680ece396de56a1f5183c5b3c3da4406759e49caaa28d711",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2016_fisica.pdf": {
+    "byte_size": 84091,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2016_fisica.pdf",
+    "format_index": 1,
+    "sha256": "da55d083af6e81e3e65302f59c36345a2701b04a94140605ed12a4aa315d20fd",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2016_ingles.pdf": {
+    "byte_size": 197463,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2016_ingles.pdf",
+    "format_index": 1,
+    "sha256": "4612afc6119f7b14d3dd95b092966bb151d6d5ee09a675c4baa00fb8e167268f",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2016_matematica.pdf": {
+    "byte_size": 71195,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2016_matematica.pdf",
+    "format_index": 1,
+    "sha256": "44ba6f44a66be6055b2df9d427a15d4946582e131bfeac94e24d16c7a71088bc",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2016_portugues.pdf": {
+    "byte_size": 346751,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2016_portugues.pdf",
+    "format_index": 1,
+    "sha256": "7782f8e4ca9aad7e9411f699f6c858a1b8d4100c7ff8120d8efa429fe732f9d6",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2016_quimica.pdf": {
+    "byte_size": 215575,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2016_quimica.pdf",
+    "format_index": 1,
+    "sha256": "da0d75ba9c841fe283037ed5c8ac116d3d133c0285b38674486224e041178b8c",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2016.pdf",
+    "year": "2016"
+  },
+  "prova_ita_vestibular_2017_answer_key.pdf": {
+    "byte_size": 86076,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2017_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "976cf567545d350863c19f749def66dce4f0d605aaa81b0a0297ab03d622c87f",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2017_fisica.pdf": {
+    "byte_size": 107245,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2017_fisica.pdf",
+    "format_index": 1,
+    "sha256": "78dedcfb96ea3a85aa3e1467d9f01958bda19526489d2807b58dfbd18f10d30e",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2017_ingles.pdf": {
+    "byte_size": 1204045,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2017_ingles.pdf",
+    "format_index": 1,
+    "sha256": "b05d9351b34077e77b0476e9e1d24df87fda5c8d7619073ce169b17063663315",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2017_matematica.pdf": {
+    "byte_size": 132171,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2017_matematica.pdf",
+    "format_index": 1,
+    "sha256": "139f96cedaa7c53755454a2cda2e074ec2f4fb1c0b0af654392ce7a71602d450",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2017_portugues.pdf": {
+    "byte_size": 1004139,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2017_portugues.pdf",
+    "format_index": 1,
+    "sha256": "94cb2cdc781f0097fbe10866af0abc67fee830625025c02f85b73515b4291943",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2017_quimica.pdf": {
+    "byte_size": 647054,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2017_quimica.pdf",
+    "format_index": 1,
+    "sha256": "cd34917c74c58791f7576aae66cd3c442ab0769a42a942ea8a81be2473e7aa7d",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2017.pdf",
+    "year": "2017"
+  },
+  "prova_ita_vestibular_2018_answer_key.pdf": {
+    "byte_size": 52658,
+    "column": "answer_key",
+    "filename": "prova_ita_vestibular_2018_answer_key.pdf",
+    "format_index": 1,
+    "sha256": "5d35bcaa1ba93829f7eb39e87179ffa91dedb2bd3f420a080e9a78709d3a31c6",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2018_fisica.pdf": {
+    "byte_size": 114027,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2018_fisica.pdf",
+    "format_index": 1,
+    "sha256": "521e4b68416ddf960dee6214fed916704efeab3e8a4dc6b3fbc41dd8251afb22",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2018_ingles.pdf": {
+    "byte_size": 229197,
+    "column": "ingles",
+    "filename": "prova_ita_vestibular_2018_ingles.pdf",
+    "format_index": 1,
+    "sha256": "0f164ea4456a03bd6ed2b7c0768d61fab86c9dc2f5f9467c662eddcaeebbdcb9",
+    "url": "https://www.vestibular.ita.br/provas/ingles_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2018_matematica.pdf": {
+    "byte_size": 128301,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2018_matematica.pdf",
+    "format_index": 1,
+    "sha256": "5c9097ae336f57b4d8850b97d7c827d59d7486a5f7d5321f587294c784afb538",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2018_portugues.pdf": {
+    "byte_size": 1439162,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2018_portugues.pdf",
+    "format_index": 1,
+    "sha256": "c751a6c860e991fcd9597da00dd8c14c5b08eb4d0cf33431322f9e88d627f34b",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2018_quimica.pdf": {
+    "byte_size": 438722,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2018_quimica.pdf",
+    "format_index": 1,
+    "sha256": "05cae96cf041acbffe0bf1a57bb9341a2c0826433fe3fc3137dd82e0fb7080ea",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2018.pdf",
+    "year": "2018"
+  },
+  "prova_ita_vestibular_2019_answer_key_1f.pdf": {
+    "byte_size": 38411,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2019_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "7a8fbaa7a0a091919dbceaaaa9c2560ff298c45840e073fc43c1e569a90badab",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2019.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2019_fisica.pdf": {
+    "byte_size": 118078,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2019_fisica.pdf",
+    "format_index": 2,
+    "sha256": "2d4a3be704928afa3a9bfabf6231befef90ae359bfde54c7883057caa5efa651",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2019_2f.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2019_matematica.pdf": {
+    "byte_size": 106670,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2019_matematica.pdf",
+    "format_index": 2,
+    "sha256": "9b76864ec1e4f8342934a5455268a5930049aaa31a48f42c7f4db07edab5466e",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2019_2f.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2019_prova_1f.pdf": {
+    "byte_size": 9123327,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2019_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "2ec1e14d3395af453ecb545afc0464992e663622d0affd9c0d7d114283e738fa",
+    "url": "https://www.vestibular.ita.br/provas/2019_fase1.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2019_quimica.pdf": {
+    "byte_size": 64524,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2019_quimica.pdf",
+    "format_index": 2,
+    "sha256": "7b8d8749b559b71e33c322e41452c462818b009c4d92ef96e4d902d38897b4dc",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2019_2f.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2019_redacao.pdf": {
+    "byte_size": 340600,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2019_redacao.pdf",
+    "format_index": 2,
+    "sha256": "a2b8bd09580d66bf02803d08d242214f8458c2775bbdcffdf3206ed81356943f",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2019_2f.pdf",
+    "year": "2019"
+  },
+  "prova_ita_vestibular_2020_answer_key_1f.pdf": {
+    "byte_size": 44463,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2020_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "d24008e605f01bed0e8fe4e48a780d2eb803cdb89565938a3452fb70119486be",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2020.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2020_fisica.pdf": {
+    "byte_size": 164808,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2020_fisica.pdf",
+    "format_index": 2,
+    "sha256": "05a4dfbd908f03ad043319548153c5fbdfedc041bb7627e28ab60661a4c8d465",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2020_2f.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2020_matematica.pdf": {
+    "byte_size": 145561,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2020_matematica.pdf",
+    "format_index": 2,
+    "sha256": "eabc006b565cd6775409d5779340e3047c41c8b3d067a1c76a9dd0fb7154ec53",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2020_2f.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2020_prova_1f.pdf": {
+    "byte_size": 18340505,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2020_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "9b5d3cd53176919bd5d9e3514ac59d3e19de2677be1c68466bbd3703edf6d1a2",
+    "url": "https://www.vestibular.ita.br/provas/2020_fase1.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2020_quimica.pdf": {
+    "byte_size": 110557,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2020_quimica.pdf",
+    "format_index": 2,
+    "sha256": "56cb0c23e3728080370abd4c70b3796b7dd2169af2209fe8d57e066fe5d07a9f",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2020_2f.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2020_redacao.pdf": {
+    "byte_size": 578997,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2020_redacao.pdf",
+    "format_index": 2,
+    "sha256": "4454c698b7431e595d849cfc4aa045424e6104d803f6fc4a7b37eca6dfdc22ce",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2020_2f.pdf",
+    "year": "2020"
+  },
+  "prova_ita_vestibular_2021_answer_key_1f.pdf": {
+    "byte_size": 44554,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2021_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "c33bcc4692ce7f043f33a99ff4d683c6ab6b4d66bc49fb62df6c387efa3df875",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2021.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2021_fisica.pdf": {
+    "byte_size": 182056,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2021_fisica.pdf",
+    "format_index": 2,
+    "sha256": "0ddbb726f7fa3323834276c1c10db1b58cc8e2d7dc64e3ee081f1400a8c99196",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2021_2f.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2021_matematica.pdf": {
+    "byte_size": 106493,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2021_matematica.pdf",
+    "format_index": 2,
+    "sha256": "38575a548086e032ac4b891339c710111c03a9ecad90ad3c32688c704113fc7a",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2021_2f.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2021_prova_1f.pdf": {
+    "byte_size": 802493,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2021_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "fbbbfa57260f3a1ea10c25c4b03d7696e5d3f2aebda2570e11a7338bda670181",
+    "url": "https://www.vestibular.ita.br/provas/2021_fase1.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2021_quimica.pdf": {
+    "byte_size": 132070,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2021_quimica.pdf",
+    "format_index": 2,
+    "sha256": "41f83094ada34c3a67586b5a9e8d100d3b69b3d78b74c2ce56d14c29eb31dd96",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2021_2f.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2021_redacao.pdf": {
+    "byte_size": 122355,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2021_redacao.pdf",
+    "format_index": 2,
+    "sha256": "50169c3c87d5c42118d2db7823792b9d16519fa3b7d6771bdcd7e469e9d042d0",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2021_2f.pdf",
+    "year": "2021"
+  },
+  "prova_ita_vestibular_2022_answer_key_1f.pdf": {
+    "byte_size": 44566,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2022_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "dfd1987bcd631605e8ec231cddfb11d05b64536bbb47acb32e6c62c3003a4f32",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2022.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2022_fisica.pdf": {
+    "byte_size": 268843,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2022_fisica.pdf",
+    "format_index": 2,
+    "sha256": "8892c9d5d31bc46e38e8e98a40c9f0a9b94924eb50f83bf6bfebb80b78fd8957",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2022_2f.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2022_matematica.pdf": {
+    "byte_size": 127332,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2022_matematica.pdf",
+    "format_index": 2,
+    "sha256": "30c67fdba7ac862771a209e4f46a583d8fefd69dd4bf684431233c630aceecc6",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2022_2f.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2022_prova_1f.pdf": {
+    "byte_size": 717966,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2022_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "7a6e70f8ed1772cb718d6f9df2be6e7402e59c00affdb8ba1b11e751dbc0755d",
+    "url": "https://www.vestibular.ita.br/provas/2022_fase1.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2022_quimica.pdf": {
+    "byte_size": 128007,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2022_quimica.pdf",
+    "format_index": 2,
+    "sha256": "2828cb0cd96b41985f8b437bbe5e2d2d0e7c3d95b70df8c6fd4533909b7622b2",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2022_2f.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2022_redacao.pdf": {
+    "byte_size": 396081,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2022_redacao.pdf",
+    "format_index": 2,
+    "sha256": "1decd4087af04f594bfc7f179a02abcf579efd59d9ec67fe9f7a5695bb2ae14f",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2022_2f.pdf",
+    "year": "2022"
+  },
+  "prova_ita_vestibular_2023_answer_key_1f.pdf": {
+    "byte_size": 40124,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2023_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "f721f31bfaa7c3660a25ef8400227b8acdad52d4ccf38be315e815c331bd984a",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2023.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2023_fisica.pdf": {
+    "byte_size": 182965,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2023_fisica.pdf",
+    "format_index": 2,
+    "sha256": "bdb6015479b98f3f1e70498369b92119f19fa4a6d085d55db045b9896faf9adf",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2023_2f.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2023_matematica.pdf": {
+    "byte_size": 150128,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2023_matematica.pdf",
+    "format_index": 2,
+    "sha256": "6aa2b63d4af0949c91e54f2f1eb3c9953df12e47ea3a2d5b61dbee13854e13eb",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2023_2f.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2023_prova_1f.pdf": {
+    "byte_size": 1338653,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2023_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "476a029ba5b00a8cb2a759b26b891096e2c86fcec2d6c1b0dc17eb7d57cc04e3",
+    "url": "https://www.vestibular.ita.br/provas/2023_fase1.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2023_quimica.pdf": {
+    "byte_size": 105460,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2023_quimica.pdf",
+    "format_index": 2,
+    "sha256": "68749aa6c059d327c9cd205cb1f578f0dd74f9a819dd58e08a1abcc6e21c9192",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2023_2f.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2023_redacao.pdf": {
+    "byte_size": 131956,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2023_redacao.pdf",
+    "format_index": 2,
+    "sha256": "367b538fd1d970c8b1c2a878755a76790dffeaebd012a4463043e2c51e51d10a",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2023_2f.pdf",
+    "year": "2023"
+  },
+  "prova_ita_vestibular_2024_answer_key_1f.pdf": {
+    "byte_size": 39932,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2024_answer_key_1f.pdf",
+    "format_index": 2,
+    "sha256": "5ff17fa70afac6c3d788570ed808190d0ae61fd184fd484bbc6ff6edccb7d4d9",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2024.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2024_fisica.pdf": {
+    "byte_size": 719516,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2024_fisica.pdf",
+    "format_index": 2,
+    "sha256": "e66125a0ec5f9df59d23c0572a760787569071376ab6d8c82ade668582a6f78d",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2024_2f.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2024_matematica.pdf": {
+    "byte_size": 105442,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2024_matematica.pdf",
+    "format_index": 2,
+    "sha256": "4498592a9c4d9df8e69781dba5607bb85d9a1a8369ce3ac7c1e666363c427acb",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2024_2f.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2024_prova_1f.pdf": {
+    "byte_size": 683435,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2024_prova_1f.pdf",
+    "format_index": 2,
+    "sha256": "b18e8f95aa95e1cc0b5e07c54e0c82783c95148725d90d24cc0c42c491267834",
+    "url": "https://www.vestibular.ita.br/provas/2024_fase1.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2024_quimica.pdf": {
+    "byte_size": 156109,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2024_quimica.pdf",
+    "format_index": 2,
+    "sha256": "473599c5f5bf3b2a51f84d62b3293525e383fd76dccc272fe251b74ca2e5f1ce",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2024_2f.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2024_redacao.pdf": {
+    "byte_size": 72397,
+    "column": "redacao",
+    "filename": "prova_ita_vestibular_2024_redacao.pdf",
+    "format_index": 2,
+    "sha256": "890908bce9daf5c298074f0f480e735c265d8429241d0c2aa0082986ca85a32e",
+    "url": "https://www.vestibular.ita.br/provas/redacao_2024_2f.pdf",
+    "year": "2024"
+  },
+  "prova_ita_vestibular_2025_answer_key_1f.pdf": {
+    "byte_size": 36514,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2025_answer_key_1f.pdf",
+    "format_index": 3,
+    "sha256": "91f4af43908f200d6d2e8b37561c62110fdf0e3e5d912d20fd2fef2323d33d5d",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2025.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_answer_key_2f.pdf": {
+    "byte_size": 23437,
+    "column": "answer_key_2f",
+    "filename": "prova_ita_vestibular_2025_answer_key_2f.pdf",
+    "format_index": 3,
+    "sha256": "eb0a9a1690633c3e6320ffe256903483b8195c7e96a0fa2e86fa5dd9fbeeacab",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2025_2f.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_fisica.pdf": {
+    "byte_size": 775374,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2025_fisica.pdf",
+    "format_index": 3,
+    "sha256": "24482c1e9922126fd7c0398f6742e6f2277953b8559795281c484bb217cb5fea",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2025_2f.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_matematica.pdf": {
+    "byte_size": 159593,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2025_matematica.pdf",
+    "format_index": 3,
+    "sha256": "ab5a641ac661af8c26fb88ff0f179091f376551366098d646385d30b22bc7058",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2025_2f.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_portugues.pdf": {
+    "byte_size": 476335,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2025_portugues.pdf",
+    "format_index": 3,
+    "sha256": "7aaf6dc12a29c26dd1c2a97d6575f58235b2bfc85836dc50b1cb5c9b04a154db",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2025_2f.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_prova_1f.pdf": {
+    "byte_size": 1788032,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2025_prova_1f.pdf",
+    "format_index": 3,
+    "sha256": "cd5c3fb869f4a4d77d2f36cc19df602f6ed109c341e45ed9a09c73cf75a86aa6",
+    "url": "https://www.vestibular.ita.br/provas/2025_fase1.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2025_quimica.pdf": {
+    "byte_size": 241895,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2025_quimica.pdf",
+    "format_index": 3,
+    "sha256": "39dcde8fb6532d30303fafa62d73ac453def58b64a1fabbbed90571e21457d30",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2025_2f.pdf",
+    "year": "2025"
+  },
+  "prova_ita_vestibular_2026_answer_key_1f.pdf": {
+    "byte_size": 36519,
+    "column": "answer_key_1f",
+    "filename": "prova_ita_vestibular_2026_answer_key_1f.pdf",
+    "format_index": 3,
+    "sha256": "ea886594b263465b26c80f3d7df02e2112eb48647050270b0fceb4985c6ada96",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2026.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_answer_key_2f.pdf": {
+    "byte_size": 22905,
+    "column": "answer_key_2f",
+    "filename": "prova_ita_vestibular_2026_answer_key_2f.pdf",
+    "format_index": 3,
+    "sha256": "2a1953aaec1a88f72c6a5e6f2444cce691c7ba609916fc35d038cd0afe64cbb2",
+    "url": "https://www.vestibular.ita.br/provas/gabarito_2026_2f.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_fisica.pdf": {
+    "byte_size": 2576184,
+    "column": "fisica",
+    "filename": "prova_ita_vestibular_2026_fisica.pdf",
+    "format_index": 3,
+    "sha256": "397f7456c2a34e39867fb3729b50da76fe4de3e9b221b2e8db03d37b36835059",
+    "url": "https://www.vestibular.ita.br/provas/fisica_2026_2f.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_matematica.pdf": {
+    "byte_size": 1597518,
+    "column": "matematica",
+    "filename": "prova_ita_vestibular_2026_matematica.pdf",
+    "format_index": 3,
+    "sha256": "36f736abd082524018723cca07f1fa36c7e15e5a167714073883c94360f34c66",
+    "url": "https://www.vestibular.ita.br/provas/matematica_2026_2f.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_portugues.pdf": {
+    "byte_size": 12235553,
+    "column": "portugues",
+    "filename": "prova_ita_vestibular_2026_portugues.pdf",
+    "format_index": 3,
+    "sha256": "5fdec9be25968718633275f8b099dde6381e83f7c8ffa9f3e72247d49cc209e1",
+    "url": "https://www.vestibular.ita.br/provas/portugues_2026_2f.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_prova_1f.pdf": {
+    "byte_size": 12811894,
+    "column": "prova_1f",
+    "filename": "prova_ita_vestibular_2026_prova_1f.pdf",
+    "format_index": 3,
+    "sha256": "d621ea678089770d605148b0ee2709b5a7cc8d9ea3bad04d10607e32abf5a8a2",
+    "url": "https://www.vestibular.ita.br/provas/2026_fase1.pdf",
+    "year": "2026"
+  },
+  "prova_ita_vestibular_2026_quimica.pdf": {
+    "byte_size": 6289072,
+    "column": "quimica",
+    "filename": "prova_ita_vestibular_2026_quimica.pdf",
+    "format_index": 3,
+    "sha256": "06124851952f67092961690d7a871ec39df7c312c3ba5dcf1ce3220b7c011eb9",
+    "url": "https://www.vestibular.ita.br/provas/quimica_2026_2f.pdf",
+    "year": "2026"
+  }
+}

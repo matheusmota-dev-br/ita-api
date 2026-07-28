@@ -208,17 +208,44 @@ __marimo__/
 
 **/chromedriver
 
-# Artefatos do pipeline: PDFs, recortes, o .db. Todos regeneráveis.
+# A regra é uma só: versiona-se o que o pipeline NÃO consegue refazer.
 data/*
 
-# A revisão humana é a exceção — o pipeline não consegue regenerá-la, então ela
-# é versionada. O git não reinclui arquivos dentro de um diretório excluído,
-# por isso o caminho precisa ser liberado nível a nível.
+# O corpus de origem é a exceção maior. Os 158 PDFs vêm de um site com `<frame>`
+# de 2008 raspado por XPath: o dia em que ele for redesenhado, ou uma prova sair
+# do ar, nenhum código deste repositório os traz de volta. São 108 MB que nunca
+# mudam — o extract é idempotente e endereçado por sha256, então cada PDF entra
+# na história uma vez e fica. Com eles aqui, reproduzir começa no `transform` e
+# o `task extract` passa a ser opcional.
+!data/vestibular/
+!data/pos/
+
+# O `_index.json` de cada pasta vai junto, e não por tamanho: sem ele a coluna
+# `fisica` é ambígua (fase única até 2018, 2ª fase de 2019 em diante) e o nome
+# do arquivo não desempata. PDF sem o índice é um corpus que ninguém interpreta.
+
+# A revisão humana é a outra exceção — o pipeline não consegue regenerá-la. O git
+# não reinclui arquivos dentro de um diretório excluído, por isso o caminho
+# precisa ser liberado nível a nível.
 !data/review/
 data/review/*
 !data/review/decisions.json
 !data/review/audit.jsonl
 !data/review/baseline.json
+
+# O relatório de download é estado de uma execução, não do corpus: vira
+# `{"downloaded": [], "skipped": [...158 nomes]}` quando tudo já está em disco, e
+# mudaria a cada `task extract`. Quem confere integridade é o `verify`.
+data/*/download_report.json
+
+# Derivados, explícitos mesmo já caindo no `data/*`: são o que o pipeline refaz.
+# O `.db` é o pior caso possível para o git — 11 MB reescritos por inteiro a cada
+# `task load`, um blob novo em cada commit. Os recortes mudam a cada ajuste de
+# retângulo, e `debug/` são 98 MB de PDF anotado para olhar uma vez e jogar fora.
+data/processed/
+data/cache/
+data/*.db
+data/*.db-journal
 
 # Artefato de medicao de cobertura
 coverage.json
