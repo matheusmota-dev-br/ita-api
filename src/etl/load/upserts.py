@@ -211,13 +211,11 @@ def ensure_alternatives(session: Session, question: Question) -> None:
   for index, letter in enumerate(OPTION_LETTERS):
     if letter in existing:
       continue
-    session.add(
-      Alternative(
-        question_id=question.id,
-        letter=letter,
-        order_index=index,
-        review_status=ReviewStatus.RAW,
-      )
+    # Anexa pela relação em vez de `session.add` com o `question_id` cru: um
+    # add direto insere a linha mas deixa `question.alternatives` desatualizada,
+    # e quem inspecionasse a coleção logo depois a veria vazia.
+    question.alternatives.append(
+      Alternative(letter=letter, order_index=index, review_status=ReviewStatus.RAW)
     )
   session.flush()
 

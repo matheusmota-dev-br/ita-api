@@ -31,6 +31,7 @@ from src.etl.load.upserts import (
 )
 from src.etl.transform.crop import CropError
 from src.etl.transform.paths import ENRICHED_SUBDIR
+from src.etl.transform.split import split_statement
 from src.models import Document, Question, Topic
 from src.models.enums import DisciplineSource, ReviewStatus
 
@@ -45,6 +46,7 @@ class LoadStats:
   questions: int = 0
   questions_updated: int = 0
   alternatives_marked: int = 0
+  alternatives_from_text: int = 0
   enriched: int = 0
   disciplines_from_llm: int = 0
   answers: int = 0
@@ -62,6 +64,7 @@ class LoadStats:
       f"{self.documents} documentos, {self.questions} questoes "
       f"({self.questions_updated} escritas), {self.answers} respostas de gabarito, "
       f"{self.alternatives_marked} alternativas corretas marcadas, "
+      f"{self.alternatives_from_text} alternativas com texto do PDF, "
       f"{self.enriched} enriquecidas pelo LLM"
     )
 
@@ -167,11 +170,54 @@ def _load_questions(session: Session, doc: LoadedDocument, stats: LoadStats) -> 
       stats.questions_updated += 1
       replace_question_pages(session, question, entry.get("parts", []))
       replace_question_assets(session, question, entry.get("parts", []), media_prefix)
-      ensure_alternatives(session, question)
+
+    # Fora do `if changed`: é idempotente e barato, e assim uma melhoria no
+    # parser chega ao corpus já carregado sem precisar invalidar os manifests.
+    ensure_alternatives(session, question)
+    stats.alternatives_from_text += _split_alternatives(question, statement)
 
     enriched = _read_enriched(doc.directory, entry["number"])
     if enriched is not None:
       _apply_enrichment(session, question, enriched, stats)
+
+
+def _split_alternatives(question: Question, statement: str) -> int:
+  """Preenche `alternatives.text_raw` a partir do texto extraído da questão.
+
+  As alternativas nascem vazias — cinco linhas A–E sem texto, esperando o
+  enrich. Mas em 58% das questões o texto delas já está legível no que foi
+  extraído do PDF, e separá-lo é trabalho de regex, não de LLM. Sem isto a API
+  serve alternativas sem conteúdo, o que a torna quase inútil para quem consome.
+
+  `statement_raw` **não** é tocado: ele é o artefato de extração, a trilha
+  auditável, e continua contendo o texto inteiro com as alternativas embutidas.
+  O que se preenche é o slot bruto de cada alternativa, que é exatamente o que
+  a extração daquela alternativa é.
+
+  Escreve só onde está vazio e onde não houve revisão humana — reexecutar não
+  desfaz correção feita à mão, e uma melhoria no parser não sobrescreve o que
+  o LLM já normalizou.
+  """
+  if not statement or not statement.strip():
+    return 0
+
+  split = split_statement(statement)
+  if not split.alternatives:
+    return 0
+
+  by_letter = {alt.letter: alt for alt in question.alternatives}
+  filled = 0
+  for letter, text in split.alternatives.items():
+    alternative = by_letter.get(letter)
+    if alternative is None:
+      continue
+    if alternative.review_status is ReviewStatus.HUMAN_VERIFIED:
+      continue
+    if (alternative.text_raw or "").strip():
+      continue
+    alternative.text_raw = text
+    filled += 1
+  return filled
 
 
 def _load_answer_key(session: Session, doc: LoadedDocument, stats: LoadStats) -> None:

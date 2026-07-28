@@ -69,6 +69,16 @@ def measure() -> dict:
         )
       ),
       "answer_key_entries": scalar(select(func.count()).select_from(AnswerKeyEntry)),
+      # As alternativas nascem vazias e o parser determinístico preenche o que
+      # consegue. Contar isto transforma "perdi o texto das alternativas" numa
+      # divergência visível em vez de uma degradação silenciosa.
+      "alternatives_with_text": scalar(
+        select(func.count())
+        .select_from(Alternative)
+        .where(
+          func.length(func.trim(func.coalesce(Alternative.text_raw, ""))) > 0,
+        )
+      ),
       "human_verified": scalar(
         select(func.count())
         .select_from(Question)
