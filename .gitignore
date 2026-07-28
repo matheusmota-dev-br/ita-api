@@ -208,4 +208,14 @@ __marimo__/
 
 **/chromedriver
 
-data/
+# Artefatos do pipeline: PDFs, recortes, o .db. Todos regeneráveis.
+data/*
+
+# A revisão humana é a exceção — o pipeline não consegue regenerá-la, então ela
+# é versionada. O git não reinclui arquivos dentro de um diretório excluído,
+# por isso o caminho precisa ser liberado nível a nível.
+!data/review/
+data/review/*
+!data/review/decisions.json
+!data/review/audit.jsonl
+!data/review/baseline.json
